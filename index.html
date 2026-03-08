@@ -167,12 +167,18 @@ window.mulaiTracking = function () {
 
       // kirim ke firebase
       await set(ref(db, "live/" + nama), {
-        latitude: lat,
-        longitude: lon,
-        alamat: alamatLengkap,
-        waktu: Date.now(),
-        status: "ONLINE"
-      });
+  latitude: lat,
+  longitude: lon,
+  alamat: alamatLengkap,
+
+  // tambahan realtime tracking
+  speed: Math.round(speed * 3.6), // m/s → km/h
+  accuracy: accuracy,
+  last_update: new Date().toLocaleTimeString(),
+
+  waktu: Date.now(),
+  status: "ONLINE"
+});
 
       document.getElementById("status").innerHTML =
         "STATUS: ONLINE <span class='online-dot'></span>";
