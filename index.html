@@ -3,47 +3,76 @@
 <head>  
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UNIT MONITORING - TACTICAL V7.0</title>
+    <title>UNIT MONITORING - TACTICAL V7.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --neon-green: #00ff00; --dark-bg: #000800; --glass-bg: rgba(5, 15, 5, 0.9); --danger: #ff0033; --cyan: #00f2ff; }
+        :root { --neon-green: #00ff00; --dark-bg: #000800; --glass-bg: rgba(5, 15, 5, 0.9); --danger: #ff0033; --cyan: #00f2ff; --warning: #ffcc00; }
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: var(--dark-bg); color: var(--neon-green); overflow: hidden; height: 100vh; display: flex; flex-direction: column; user-select: none; transition: filter 0.3s; }
+        
+        /* Grid & Background */
         .grid-bg { position: fixed; inset: 0; background-image: linear-gradient(rgba(0, 255, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 0, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -1; transform: perspective(500px) rotateX(60deg); transform-origin: center top; animation: moveGrid 10s linear infinite; }
         @keyframes moveGrid { from { background-position: 0 0; } to { background-position: 0 300px; } }
+
         .header { background: rgba(2, 18, 2, 0.95); padding: 12px; text-align: center; border-bottom: 2px solid var(--neon-green); letter-spacing: 4px; z-index: 50; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3); }
         .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 15px; }
-        #compass { width: 110px; height: 110px; border: 2px solid var(--neon-green); border-radius: 50%; margin-bottom: 15px; position: relative; background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%); transition: transform 0.1s linear; }
-        .needle { position: absolute; top: 50%; left: 50%; width: 3px; height: 45px; background: var(--cyan); transform-origin: bottom; transform: translate(-50%, -100%); box-shadow: 0 0 10px var(--cyan); }
-        .card { background: var(--glass-bg); padding: 20px; width: 100%; max-width: 350px; border: 1px solid var(--neon-green); border-radius: 10px; backdrop-filter: blur(10px); position: relative; }
-        input { width: 100%; padding: 15px; background: #000; border: 1px solid var(--neon-green); color: var(--neon-green); font-family: 'JetBrains Mono'; margin-bottom: 15px; box-sizing: border-box; text-align: center; outline: none; }
-        button { width: 100%; padding: 16px; border: none; font-weight: bold; font-family: 'Orbitron'; cursor: pointer; text-transform: uppercase; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); transition: 0.2s; }
+
+        /* Compass */
+        #compass { width: 100px; height: 100px; border: 2px solid var(--neon-green); border-radius: 50%; margin-bottom: 15px; position: relative; background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%); transition: transform 0.1s linear; }
+        .needle { position: absolute; top: 50%; left: 50%; width: 2px; height: 40px; background: var(--cyan); transform-origin: bottom; transform: translate(-50%, -100%); box-shadow: 0 0 10px var(--cyan); }
+
+        /* Card & Input */
+        .card { background: var(--glass-bg); padding: 20px; width: 100%; max-width: 350px; border: 1px solid var(--neon-green); border-radius: 10px; backdrop-filter: blur(10px); position: relative; box-sizing: border-box; }
+        input { width: 100%; padding: 15px; background: #000; border: 1px solid var(--neon-green); color: var(--neon-green); font-family: 'JetBrains Mono'; margin-bottom: 10px; box-sizing: border-box; text-align: center; outline: none; }
+        input:disabled { opacity: 0.5; border-color: #333; }
+
+        /* Buttons */
+        button { width: 100%; padding: 16px; border: none; font-weight: bold; font-family: 'Orbitron'; cursor: pointer; text-transform: uppercase; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); margin-bottom: 5px; transition: 0.2s; }
         #btnTrack { background: var(--neon-green); color: #000; }
-        #btnTrack:active { transform: scale(0.95); }
-        #btnSOS { background: var(--danger); color: #fff; display: none; margin-top: 10px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        #btnSOS { background: var(--danger); color: #fff; display: none; animation: pulse 1.5s infinite; }
+        #btnTerminate { background: transparent; color: var(--danger); border: 1px solid var(--danger); display: none; font-size: 10px; padding: 8px; margin-top: 10px; }
+
+        /* Telemetry */
         .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; font-family: 'JetBrains Mono'; }
         .tel-box { background: rgba(0,0,0,0.7); padding: 8px; border: 1px solid rgba(0, 255, 0, 0.2); }
         .tel-label { font-size: 8px; color: var(--cyan); display: block; }
         .tel-val { font-size: 14px; font-weight: bold; color: #fff; }
-        .ping { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; display: inline-block; opacity: 0; }
+
+        /* Loading & Notification */
+        #loader { display: none; width: 20px; height: 20px; border: 2px solid var(--neon-green); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 10px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        #status-msg { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 5px; font-size: 12px; font-weight: bold; z-index: 100; display: none; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { top: 0; opacity: 0; } to { top: 80px; opacity: 1; } }
+
+        /* Utils */
+        .ping { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; display: inline-block; opacity: 0; vertical-align: middle; }
         .ping.active { animation: blink 0.5s; }
         @keyframes blink { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
-        .emergency-mode { filter: sepia(1) saturate(5) hue-rotate(-50deg); }
+        .emergency-mode { filter: sepia(1) saturate(4) hue-rotate(-50deg); }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 <div class="grid-bg"></div>
+<div id="status-msg"></div>
+
 <div class="header">
     <span style="font-size: 10px;">TAC-UNIT</span>
-    <div><div id="hb" class="ping"></div> <span>TACTICAL_V7</span></div>
+    <div><div id="hb" class="ping"></div> <span>TACTICAL_V7.1</span></div>
     <span id="pwr">--%</span>
 </div>
+
 <div class="container">
     <div id="compass"><div class="needle"></div></div>
     <div class="card">
         <input type="text" id="nama" placeholder="CALLSIGN_ID" maxlength="12" spellcheck="false">
+        
+        <div id="loader"></div>
+        
         <button id="btnTrack">Initiate Uplink</button>
         <button id="btnSOS">SEND SOS BEACON</button>
+        <button id="btnTerminate">Terminate Connection</button>
+
         <div class="telemetry">
             <div class="tel-box"><span class="tel-label">LAT</span><span class="tel-val" id="lat">0.0000</span></div>
             <div class="tel-box"><span class="tel-label">LON</span><span class="tel-val" id="lon">0.0000</span></div>
@@ -55,7 +84,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onDisconnect, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, onDisconnect, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
@@ -69,8 +98,20 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    
     let isSOS = false;
     let currentCallsign = "";
+    let watchId = null;
+
+    // UI Helper: Notify
+    function showNotify(text, type) {
+        const msg = document.getElementById("status-msg");
+        msg.innerText = text;
+        msg.style.display = "block";
+        msg.style.background = type === 'success' ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 0, 51, 0.8)';
+        msg.style.color = type === 'success' ? '#000' : '#fff';
+        setTimeout(() => msg.style.display = "none", 3000);
+    }
 
     // Battery Logic
     if (navigator.getBattery) {
@@ -80,22 +121,28 @@
         });
     }
 
-    // Compass Logic
+    // Compass
     window.addEventListener("deviceorientation", (e) => {
         let heading = e.webkitCompassHeading || (360 - e.alpha);
         if (heading) document.getElementById("compass").style.transform = `rotate(${-heading}deg)`;
     });
 
+    // Start Tracking
     document.getElementById("btnTrack").onclick = function() {
         const callsign = document.getElementById("nama").value.trim().toUpperCase();
-        if(!callsign) return alert("CALLSIGN REQUIRED");
-        currentCallsign = callsign;
+        if(!callsign) {
+            showNotify("REQUIRED: CALLSIGN ID", "error");
+            return;
+        }
 
+        // UI Loading State
         this.style.display = "none";
-        document.getElementById("btnSOS").style.display = "block";
+        document.getElementById("loader").style.display = "block";
         document.getElementById("nama").disabled = true;
 
-        navigator.geolocation.watchPosition((pos) => {
+        currentCallsign = callsign;
+
+        watchId = navigator.geolocation.watchPosition((pos) => {
             const data = {
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
@@ -105,36 +152,63 @@
                 status: isSOS ? "EMERGENCY" : "ACTIVE"
             };
 
-            // Update UI
+            // Firebase Update
+            set(ref(db, "live/" + currentCallsign), data)
+                .then(() => {
+                    if(document.getElementById("loader").style.display === "block") {
+                        document.getElementById("loader").style.display = "none";
+                        document.getElementById("btnSOS").style.display = "block";
+                        document.getElementById("btnTerminate").style.display = "block";
+                        showNotify("UPLINK SUCCESSFUL", "success");
+                    }
+                })
+                .catch(() => showNotify("FIREBASE CONNECTION ERROR", "error"));
+
+            onDisconnect(ref(db, "live/" + currentCallsign)).remove();
+
+            // UI Telemetry Update
             document.getElementById("lat").innerText = data.latitude.toFixed(4);
             document.getElementById("lon").innerText = data.longitude.toFixed(4);
             document.getElementById("spd").innerText = data.speed + " kmh";
             document.getElementById("acc").innerText = data.accuracy + " m";
             
-            // Heartbeat
             const hb = document.getElementById("hb");
             hb.classList.add("active"); setTimeout(() => hb.classList.remove("active"), 400);
 
-            // Firebase Update
-            set(ref(db, "live/" + currentCallsign), data);
-            onDisconnect(ref(db, "live/" + currentCallsign)).remove();
-
         }, (err) => {
-            alert("GPS Error: " + err.message);
-        }, { enableHighAccuracy: true, maximumAge: 0 });
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("btnTrack").style.display = "block";
+            document.getElementById("nama").disabled = false;
+            showNotify("GPS ERROR: " + err.message, "error");
+        }, { enableHighAccuracy: true });
     };
 
+    // SOS Toggle
     document.getElementById("btnSOS").onclick = function() {
         isSOS = !isSOS;
         document.body.classList.toggle("emergency-mode");
         this.innerText = isSOS ? "CANCEL SOS" : "SEND SOS BEACON";
         
-        // Immediate database update for status change
         if (currentCallsign) {
             update(ref(db, "live/" + currentCallsign), { 
                 status: isSOS ? "EMERGENCY" : "ACTIVE",
                 ts: Date.now() 
             });
+        }
+    };
+
+    // Terminate Logic
+    document.getElementById("btnTerminate").onclick = async function() {
+        if(confirm("TERMINATE ALL UPLINKS?")) {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            
+            // Hapus data dari Firebase
+            if (currentCallsign) {
+                await remove(ref(db, "live/" + currentCallsign));
+            }
+
+            // Reset UI
+            location.reload(); // Cara tercepat untuk mereset seluruh state tactical
         }
     };
 </script>
