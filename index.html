@@ -9,8 +9,9 @@
         :root {
             --neon-green: #00ff00;
             --dark-bg: #000800;
-            --glass-bg: rgba(5, 15, 5, 0.9);
+            --glass-bg: rgba(5, 15, 5, 0.95);
             --danger: #ff0033;
+            --warning: #ffcc00;
         }
 
         body { 
@@ -20,28 +21,19 @@
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
-        /* Scanline CRT Effect */
+        /* CRT Scanline Effect */
         body::before { 
             content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; 
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); 
-            z-index: 100; background-size: 100% 3px, 3px 100%; pointer-events: none; 
+            z-index: 1000; background-size: 100% 3px, 3px 100%; pointer-events: none; 
         }
 
-        /* Animated Radar Pulse */
-        .radar-circles {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 100vmax; height: 100vmax; z-index: 1; pointer-events: none;
-        }
-        .circle {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            border: 1px solid rgba(0, 255, 0, 0.1); border-radius: 50%;
-            animation: radar-sweep 4s infinite linear;
-        }
-
-        @keyframes radar-sweep {
-            0% { width: 0; height: 0; opacity: 1; }
-            100% { width: 100%; height: 100%; opacity: 0; }
+        /* Loading Overlay */
+        #boot-screen {
+            position: fixed; inset: 0; background: #000; z-index: 9999;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            font-family: 'JetBrains Mono'; font-size: 12px;
         }
 
         .header { 
@@ -51,123 +43,122 @@
             box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
         }
 
-        .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 20px; }
+        .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 20px; position: relative; }
+
+        /* Tactical Signal Strength Display */
+        .signal-meter {
+            display: flex; gap: 3px; align-items: flex-end; height: 15px; margin-bottom: 10px;
+        }
+        .sig-bar { width: 4px; background: rgba(0,255,0,0.2); border-radius: 1px; }
+        .sig-bar.active { background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green); }
 
         /* Compass Visualizer */
         #compass {
-            width: 120px; height: 120px; border: 2px solid var(--neon-green);
-            border-radius: 50%; margin-bottom: 20px; position: relative;
-            transition: transform 0.1s ease-out; box-shadow: 0 0 20px rgba(0,255,0,0.2);
+            width: 100px; height: 100px; border: 1px solid var(--neon-green);
+            border-radius: 50%; margin-bottom: 15px; position: relative;
+            transition: transform 0.1s ease-out; box-shadow: 0 0 15px rgba(0,255,0,0.1);
         }
-        #compass::after {
-            content: "N"; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-            font-size: 10px; font-weight: bold;
-        }
-        .needle {
-            position: absolute; top: 50%; left: 50%; width: 2px; height: 50px;
-            background: var(--danger); transform-origin: bottom; transform: translate(-50%, -100%);
-        }
+        #compass::after { content: "N"; position: absolute; top: 2px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: bold; }
+        .needle { position: absolute; top: 50%; left: 50%; width: 2px; height: 40px; background: var(--danger); transform-origin: bottom; transform: translate(-50%, -100%); }
 
         .card { 
-            background: var(--glass-bg); padding: 25px; width: 100%; max-width: 340px; 
-            border: 1px solid var(--neon-green); border-radius: 4px;
-            box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1); backdrop-filter: blur(10px);
+            background: var(--glass-bg); padding: 20px; width: 100%; max-width: 340px; 
+            border: 1px solid var(--neon-green); position: relative; overflow: hidden;
         }
+
+        /* Scanning Line Animation */
+        .scan-line {
+            position: absolute; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.3);
+            top: 0; left: 0; animation: scan 3s infinite linear; pointer-events: none;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
         input { 
-            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.9); 
+            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.8); 
             border: 1px solid var(--neon-green); color: var(--neon-green); 
             font-family: 'JetBrains Mono'; margin-bottom: 15px; 
-            box-sizing: border-box; outline: none; text-align: center; border-radius: 0;
+            box-sizing: border-box; outline: none; text-align: center;
         }
 
+        .btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+        
         button { 
-            width: 100%; padding: 18px; background: var(--neon-green); color: #000; 
-            border: none; font-weight: 900; cursor: pointer; 
-            font-family: 'Orbitron'; text-transform: uppercase;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            width: 100%; padding: 16px; border: none; font-weight: bold; cursor: pointer; 
+            font-family: 'Orbitron'; text-transform: uppercase; transition: 0.3s;
         }
 
-        button:disabled { background: #004400; color: var(--neon-green); box-shadow: none; cursor: default; }
+        #btnTrack { background: var(--neon-green); color: #000; box-shadow: 0 0 15px rgba(0, 255, 0, 0.4); }
+        #btnTrack:disabled { background: #004400; color: var(--neon-green); box-shadow: none; opacity: 0.6; }
 
-        .telemetry { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; 
-            margin-top: 20px; font-family: 'JetBrains Mono';
+        .btn-terminate { 
+            background: transparent; color: var(--danger); border: 1px solid var(--danger); 
+            font-size: 10px; display: none; margin-top: 10px;
         }
+        .btn-terminate:hover { background: var(--danger); color: #fff; }
 
-        .tel-box {
-            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 2px;
-            border: 1px solid rgba(0, 255, 0, 0.2);
-        }
+        .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; font-family: 'JetBrains Mono'; }
+        .tel-box { background: rgba(0,0,0,0.6); padding: 10px; border: 1px solid rgba(0, 255, 0, 0.1); }
+        .tel-label { font-size: 7px; color: #666; display: block; margin-bottom: 3px; letter-spacing: 1px; }
+        .tel-val { font-size: 13px; font-weight: bold; color: #fff; }
 
-        .tel-label { font-size: 8px; color: #888; display: block; margin-bottom: 4px; }
-        .tel-val { font-size: 14px; font-weight: bold; color: #fff; }
+        #status-bar { width: 100%; max-width: 340px; display: flex; justify-content: space-between; font-size: 9px; margin-top: 12px; font-family: 'JetBrains Mono'; opacity: 0.8; }
+        .active-glow { animation: glow 2s infinite; color: var(--warning); }
+        @keyframes glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        #status-bar {
-            width: 100%; max-width: 340px; display: flex; justify-content: space-between;
-            font-size: 10px; margin-top: 15px; font-family: 'JetBrains Mono';
-        }
-
-        .active-glow { animation: glow 1.5s infinite; }
-        @keyframes glow { 0%, 100% { text-shadow: 0 0 5px var(--neon-green); } 50% { text-shadow: 0 0 15px var(--neon-green); } }
-
-        .footer-info {
-            background: #021202; width: 100%; padding: 10px; text-align: center;
-            font-size: 9px; color: rgba(0,255,0,0.5); border-top: 1px solid var(--neon-green);
-        }
+        .footer-info { background: #010a01; width: 100%; padding: 8px; text-align: center; font-size: 8px; color: rgba(0,255,0,0.4); border-top: 1px solid rgba(0,255,0,0.2); }
     </style>
 </head>
 <body>
 
-<div class="radar-circles">
-    <div class="circle" style="animation-delay: 0s"></div>
-    <div class="circle" style="animation-delay: 1s"></div>
-    <div class="circle" style="animation-delay: 2s"></div>
+<div id="boot-screen">
+    <div style="margin-bottom: 20px; color: var(--neon-green);" id="boot-text">> INITIALIZING SATELLITE LINK...</div>
+    <div style="width: 200px; height: 2px; background: #111; overflow: hidden;">
+        <div id="boot-progress" style="width: 0%; height: 100%; background: var(--neon-green);"></div>
+    </div>
 </div>
 
 <div class="header">Yonif 859 // Tactical Uplink</div>
 
 <div class="container">
-    <div id="compass">
-        <div class="needle"></div>
+    <div class="signal-meter">
+        <div class="sig-bar" style="height: 4px;"></div>
+        <div class="sig-bar" style="height: 7px;"></div>
+        <div class="sig-bar" style="height: 10px;"></div>
+        <div class="sig-bar" style="height: 13px;"></div>
+        <div class="sig-bar" style="height: 16px;"></div>
     </div>
 
+    <div id="compass"><div class="needle"></div></div>
+
     <div class="card" id="mainCard">
-        <input type="text" id="nama" placeholder="CALLSIGN / UNIT NAME" maxlength="15">
-        <button id="btnTrack">Initiate Link</button>
+        <div class="scan-line"></div>
+        <input type="text" id="nama" placeholder="CALLSIGN / UNIT NAME" maxlength="15" spellcheck="false">
+        
+        <div class="btn-group">
+            <button id="btnTrack">Initiate Link</button>
+            <button id="btnTerminate" class="btn-terminate">Terminate Uplink</button>
+        </div>
         
         <div class="telemetry">
-            <div class="tel-box">
-                <span class="tel-label">LATITUDE</span>
-                <span class="tel-val" id="lat">0.00000</span>
-            </div>
-            <div class="tel-box">
-                <span class="tel-label">LONGITUDE</span>
-                <span class="tel-val" id="lon">0.00000</span>
-            </div>
-            <div class="tel-box">
-                <span class="tel-label">SPEED</span>
-                <span class="tel-val"><span id="spd">0</span> KM/H</span>
-            </div>
-            <div class="tel-box">
-                <span class="tel-label">ACCURACY</span>
-                <span class="tel-val"><span id="acc">0</span> M</span>
-            </div>
+            <div class="tel-box"><span class="tel-label">LATITUDE</span><span class="tel-val" id="lat">0.00000</span></div>
+            <div class="tel-box"><span class="tel-label">LONGITUDE</span><span class="tel-val" id="lon">0.00000</span></div>
+            <div class="tel-box"><span class="tel-label">VELOCITY</span><span class="tel-val"><span id="spd">0</span> KM/H</span></div>
+            <div class="tel-box"><span class="tel-label">PRECISION</span><span class="tel-val"><span id="acc">0</span> M</span></div>
         </div>
     </div>
 
     <div id="status-bar">
-        <span id="pwr">BATT: --%</span>
-        <span id="msg" class="active-glow">SYSTEM STANDBY</span>
+        <span id="pwr">PWR: --%</span>
+        <span id="msg" class="active-glow">AWAITING AUTH...</span>
         <span id="time">00:00:00</span>
     </div>
 </div>
 
-<div class="footer-info">SECURE CHANNEL // AES-256 BIT ENCRYPTION // NO LOG RETAIN</div>
+<div class="footer-info">SECURE CHANNEL // AES-256 BIT ENCRYPTION // YONIF 859 HQ</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
@@ -183,45 +174,52 @@
     const db = getDatabase(app);
 
     const btn = document.getElementById("btnTrack");
+    const btnTerm = document.getElementById("btnTerminate");
+    const bootScreen = document.getElementById("boot-screen");
     const compass = document.getElementById("compass");
+    let watchID = null;
 
-    // Clock
-    setInterval(() => {
-        document.getElementById("time").innerText = new Date().toLocaleTimeString('en-GB');
-    }, 1000);
-
-    // Battery
+    // Clock & Battery
+    setInterval(() => { document.getElementById("time").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
     if (navigator.getBattery) {
         navigator.getBattery().then(bat => {
-            const updateBat = () => document.getElementById("pwr").innerText = `BATT: ${Math.round(bat.level * 100)}%`;
-            updateBat();
-            bat.onlevelchange = updateBat;
+            const up = () => document.getElementById("pwr").innerText = `PWR: ${Math.round(bat.level * 100)}%`;
+            up(); bat.onlevelchange = up;
         });
     }
 
-    // Compass / Device Orientation
+    // Compass
     window.addEventListener("deviceorientation", (e) => {
-        if (e.webkitCompassHeading) { // iOS
-            compass.style.transform = `rotate(${-e.webkitCompassHeading}deg)`;
-        } else { // Android
-            compass.style.transform = `rotate(${-e.alpha}deg)`;
-        }
+        let heading = e.webkitCompassHeading || (360 - e.alpha);
+        compass.style.transform = `rotate(${-heading}deg)`;
     });
 
     btn.onclick = async function() {
         const nama = document.getElementById("nama").value.trim().toUpperCase();
         if(!nama) return;
 
+        // Boot Sequence Simulation
+        bootScreen.style.display = 'flex';
+        const steps = ["> SECURING CHANNEL...", "> BYPASSING FIREWALL...", "> CALIBRATING GPS...", "> LINK ESTABLISHED!"];
+        for(let i=0; i<=100; i+=5) {
+            document.getElementById("boot-progress").style.width = i + '%';
+            if(i % 25 === 0) document.getElementById("boot-text").innerText = steps[i/25];
+            await new Promise(r => setTimeout(r, 60));
+        }
+        bootScreen.style.display = 'none';
+
+        // UI Transformation
         btn.disabled = true;
         btn.innerText = "UPLINK ACTIVE";
-        document.getElementById("msg").innerText = "TRANSMITTING...";
-        
-        // WakeLock
+        btnTerm.style.display = 'block';
+        document.getElementById("msg").innerText = "BROADCASTING";
+        document.querySelectorAll('.sig-bar').forEach((b, i) => setTimeout(() => b.classList.add('active'), i * 100));
+
         if ("wakeLock" in navigator) {
             try { await navigator.wakeLock.request("screen"); } catch (err) {}
         }
 
-        navigator.geolocation.watchPosition((pos) => {
+        watchID = navigator.geolocation.watchPosition((pos) => {
             const updates = {
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
@@ -239,6 +237,20 @@
             document.getElementById("spd").innerText = updates.speed;
             document.getElementById("acc").innerText = updates.accuracy;
         }, null, { enableHighAccuracy: true });
+    };
+
+    btnTerm.onclick = function() {
+        if(confirm("CONFIRM TERMINATION: BREAK UPLINK?")) {
+            const nama = document.getElementById("nama").value.trim().toUpperCase();
+            if(watchID) navigator.geolocation.clearWatch(watchID);
+            
+            // Set offline status or remove
+            set(ref(db, "live/" + nama + "/status"), "OFFLINE");
+            
+            // Reload page for clean state
+            document.body.style.filter = "invert(1) hue-rotate(90deg)"; // Glitch effect
+            setTimeout(() => window.location.reload(), 500);
+        }
     };
 </script>
 </body>
