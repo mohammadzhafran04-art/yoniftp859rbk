@@ -1,373 +1,162 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Command Center Tactical Map</title>
+    <meta charset="UTF-8">
+    <title>COMMAND CENTER - HQ DASHBOARD</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Orbitron', sans-serif; background: #050a05; color: #00ff00; overflow: hidden; }
+        
+        .header {
+            background: #0a1a0a; padding: 15px 25px; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 2px solid #00ff00; box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+        .container { display: grid; grid-template-columns: 300px 1fr 300px; height: calc(100vh - 65px); }
+        
+        .panel { background: rgba(10, 25, 10, 0.95); padding: 20px; border-right: 1px solid #00ff00; overflow-y: auto; }
+        .panel-right { border-right: none; border-left: 1px solid #00ff00; }
 
-<style>
+        #map { background: #000; height: 100%; }
 
-body{
-margin:0;
-font-family:Arial;
-background:#071207;
-color:white;
-overflow:hidden;
-}
+        .stat-card {
+            background: #000; border: 1px solid #00ff00; padding: 15px; margin-bottom: 15px;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
 
-body::before{
-content:"";
-position:fixed;
-width:1200px;
-height:1200px;
-border-radius:50%;
-border:2px solid rgba(0,255,0,0.15);
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-animation:spin 30s linear infinite;
-pointer-events:none;
-}
+        .unit-item {
+            padding: 12px; border-bottom: 1px solid rgba(0, 255, 0, 0.2); cursor: pointer; transition: 0.2s;
+        }
 
-@keyframes spin{
-0%{transform:translate(-50%,-50%) rotate(0deg);}
-100%{transform:translate(-50%,-50%) rotate(360deg);}
-}
+        .unit-item:hover { background: rgba(0, 255, 0, 0.1); }
+        .online { color: #00ff88; font-weight: bold; }
+        .offline { color: #ff3333; }
 
-.radar-sweep{
-position:fixed;
-width:1200px;
-height:1200px;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-background:conic-gradient(rgba(0,255,0,0.35) 0deg,rgba(0,255,0,0.15) 40deg,transparent 90deg);
-border-radius:50%;
-animation:radarSweep 6s linear infinite;
-pointer-events:none;
-}
+        /* Custom Marker CSS */
+        .marker-pulse {
+            width: 15px; height: 15px; background: #00ff00; border: 2px solid white;
+            border-radius: 50%; box-shadow: 0 0 15px #00ff00;
+            animation: pulse-ring 1.5s infinite;
+        }
 
-@keyframes radarSweep{
-0%{transform:translate(-50%,-50%) rotate(0deg);}
-100%{transform:translate(-50%,-50%) rotate(360deg);}
-}
+        @keyframes pulse-ring {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
 
-.header{
-background:#102210;
-padding:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.logout-btn{
-background:#b30000;
-border:none;
-color:white;
-padding:8px 15px;
-border-radius:6px;
-cursor:pointer;
-}
-
-.container{
-display:grid;
-grid-template-columns:260px 1fr 260px;
-height:calc(100vh - 60px);
-}
-
-.panel{
-background:#112211;
-padding:15px;
-overflow:auto;
-}
-
-#map{
-height:100%;
-}
-
-.nama-item{
-background:#203820;
-margin:5px 0;
-padding:8px;
-border-radius:6px;
-cursor:pointer;
-}
-
-.nama-item:hover{
-background:#2e4f2e;
-}
-
-.online{color:#00ff88;}
-.offline{color:red;}
-
-.stat{
-margin-bottom:10px;
-font-size:14px;
-}
-
-.alert{
-background:#ff0000;
-padding:5px;
-border-radius:4px;
-margin-top:5px;
-}
-
-</style>
+        .logout-btn {
+            background: #440000; color: white; border: 1px solid red;
+            padding: 8px 15px; cursor: pointer; font-family: 'Orbitron';
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="radar-sweep"></div>
-
-<script>
-if(localStorage.getItem("auth")!=="true"){
-window.location.href="login.html";
-}
-</script>
-
 <div class="header">
-<h3>🛰 Command Center Tactical Map</h3>
-<button class="logout-btn" onclick="logout()">Logout</button>
+    <div style="font-size: 20px;">🛰 COMMAND CENTER <span style="font-size: 12px; color: #888;">v2.0 HD</span></div>
+    <button class="logout-btn" onclick="logout()">TERMINATE SESSION</button>
 </div>
 
 <div class="container">
+    <div class="panel">
+        <div class="stat-card">
+            <div style="font-size: 10px;">TOTAL ASSETS</div>
+            <div id="totalUnit" style="font-size: 24px;">0</div>
+        </div>
+        <div class="stat-card" style="border-color: #00ff88;">
+            <div style="font-size: 10px;">ACTIVE UNITS</div>
+            <div id="onlineUnit" style="font-size: 24px; color: #00ff88;">0</div>
+        </div>
+        
+        <h3>UNIT LIST</h3>
+        <input type="text" id="search" placeholder="FILTER CALLSIGN..." style="width:100%; padding:8px; background:#000; border:1px solid #00ff00; color:#00ff00; font-family:'Orbitron';">
+        <div id="listUnit" style="margin-top:15px;"></div>
+    </div>
 
-<div class="panel">
+    <div id="map"></div>
 
-<h3>Statistik</h3>
-
-<div class="stat" id="totalAnggota">Total : 0</div>
-<div class="stat" id="onlineAnggota">Online : 0</div>
-<div class="stat" id="offlineAnggota">Offline : 0</div>
-
-<h3>Cari Anggota</h3>
-
-<input type="text" id="searchNama" placeholder="Nama..." style="width:100%;padding:6px">
-
-<div id="listAnggota"></div>
-
+    <div class="panel panel-right">
+        <h3>UNIT TELEMETRY</h3>
+        <div id="detailBox" style="font-size: 13px; line-height: 2;">
+            SELECT UNIT TO VIEW DATA
+        </div>
+    </div>
 </div>
-
-<div id="map"></div>
-
-<div class="panel">
-
-<h3>Detail Anggota</h3>
-
-<div id="detailBox">
-Klik anggota untuk melihat detail
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-function logout(){
-localStorage.removeItem("auth");
-window.location.href="login.html";
-}
-
-</script>
 
 <script type="module">
-
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {getDatabase,ref,onValue} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-const firebaseConfig={
-apiKey:"AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
-authDomain:"database-baru-rbk.firebaseapp.com",
-databaseURL:"https://database-baru-rbk-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId:"database-baru-rbk",
-storageBucket:"database-baru-rbk.firebasestorage.app",
-messagingSenderId:"419838977211",
-appId:"1:419838977211:web:2c6af76dab5cf21915f59e"
-};
-
-const app=initializeApp(firebaseConfig);
-const db=getDatabase(app);
-
-const map=L.map("map").setView([-2,118],5);
-
-let autoZoom=true;
-
-map.on("zoomstart",()=>{autoZoom=false});
-map.on("dragstart",()=>{autoZoom=false});
-
-const normal=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
-const satelit=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}");
-
-normal.addTo(map);
-
-L.control.layers({
-"Normal":normal,
-"Satelit":satelit
-}).addTo(map);
-
-let markers={}
-let paths={}
-let radar={}
-let history={}
-let allData={}
-let bounds=L.latLngBounds()
-
-function moveSmooth(marker,newLatLng){
-
-const start=marker.getLatLng()
-const duration=800
-const startTime=performance.now()
-
-function animate(time){
-
-const progress=Math.min((time-startTime)/duration,1)
-
-const lat=start.lat+(newLatLng[0]-start.lat)*progress
-const lng=start.lng+(newLatLng[1]-start.lng)*progress
-
-marker.setLatLng([lat,lng])
-
-if(progress<1) requestAnimationFrame(animate)
-
-}
-
-requestAnimationFrame(animate)
-
-}
-
-function formatTime(t){
-if(!t) return "-"
-return new Date(t).toLocaleTimeString()
-}
-
-function render(){
-
-const list=document.getElementById("listAnggota")
-const keyword=document.getElementById("searchNama").value.toLowerCase()
-
-list.innerHTML=""
-bounds=L.latLngBounds()
-
-let total=0
-let online=0
-let offline=0
-
-Object.keys(allData).forEach(nama=>{
-
-const data=allData[nama]
-
-const lat=data.latitude
-const lon=data.longitude
-const alamat=data.alamat||"-"
-const waktu=formatTime(data.waktu)
-
-const isOnline=(Date.now()-data.waktu)<20000
-
-total++
-
-if(isOnline) online++
-else offline++
-
-if(!nama.toLowerCase().includes(keyword)) return
-
-bounds.extend([lat,lon])
-
-const popup=`
-<b>${nama}</b><br>
-📍 ${alamat}<br>
-🕒 ${waktu}
-`
-
-if(!markers[nama]){
-
-markers[nama]=L.marker([lat,lon]).addTo(map).bindPopup(popup)
-
-paths[nama]=L.polyline([[lat,lon]],{color:"lime"}).addTo(map)
-
-radar[nama]=L.circle([lat,lon],{
-radius:60,
-color:"lime",
-fillOpacity:0.1
-}).addTo(map)
-
-history[nama]=[]
-
-}else{
-
-moveSmooth(markers[nama],[lat,lon])
-
-paths[nama].addLatLng([lat,lon])
-
-radar[nama].setLatLng([lat,lon])
-
-markers[nama].setPopupContent(popup)
-
-}
-
-history[nama].push([lat,lon])
-
-const item=document.createElement("div")
-
-item.className="nama-item"
-
-item.innerHTML=`
-<strong>${nama}</strong><br>
-<span class="${isOnline?'online':'offline'}">
-${isOnline?'ONLINE':'OFFLINE'}
-</span>
-`
-
-item.onclick=()=>{
-
-map.setView([lat,lon],15)
-markers[nama].openPopup()
-
-document.getElementById("detailBox").innerHTML=`
-<b>${nama}</b><br><br>
-Status : ${isOnline?'ONLINE':'OFFLINE'}<br>
-Alamat : ${alamat}<br>
-Koordinat : ${lat}, ${lon}<br>
-Last Update : ${waktu}
-${!isOnline?'<div class="alert">⚠ Anggota Offline</div>':''}
-`
-
-}
-
-list.appendChild(item)
-
-})
-
-document.getElementById("totalAnggota").innerText="Total : "+total
-document.getElementById("onlineAnggota").innerText="Online : "+online
-document.getElementById("offlineAnggota").innerText="Offline : "+offline
-
-if(bounds.isValid() && autoZoom){
-map.fitBounds(bounds,{
-padding:[40,40],
-maxZoom:16
-})
-}
-
-}
-
-onValue(ref(db,"live"),snap=>{
-
-const data=snap.val()
-
-if(!data) return
-
-allData=data
-
-render()
-
-})
-
-document.getElementById("searchNama").addEventListener("input",render)
-
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
+        authDomain: "database-baru-rbk.firebaseapp.com",
+        databaseURL: "https://database-baru-rbk-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "database-baru-rbk",
+        storageBucket: "database-baru-rbk.firebasestorage.app",
+        messagingSenderId: "419838977211",
+        appId: "1:419838977211:web:2c6af76dab5cf21915f59e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Setup Map with Dark Mode
+    const map = L.map("map").setView([-2, 118], 5);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CartoDB'
+    }).addTo(map);
+
+    let markers = {};
+    let paths = {};
+
+    onValue(ref(db, "live"), snap => {
+        const data = snap.val();
+        if(!data) return;
+
+        const list = document.getElementById("listUnit");
+        list.innerHTML = "";
+        let count = 0, online = 0;
+
+        Object.keys(data).forEach(nama => {
+            const unit = data[nama];
+            const isOnline = (Date.now() - unit.waktu) < 30000;
+            count++; if(isOnline) online++;
+
+            // Update/Create Marker
+            if(!markers[nama]) {
+                const customIcon = L.divIcon({ className: 'custom-m', html: '<div class="marker-pulse"></div>' });
+                markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: customIcon}).addTo(map);
+                paths[nama] = L.polyline([], {color: '#00ff00', weight: 2, opacity: 0.5}).addTo(map);
+            }
+            
+            markers[nama].setLatLng([unit.latitude, unit.longitude]);
+            paths[nama].addLatLng([unit.latitude, unit.longitude]);
+
+            // Unit List Item
+            const item = document.createElement("div");
+            item.className = "unit-item";
+            item.innerHTML = `<strong>${nama}</strong> <span style="float:right" class="${isOnline?'online':'offline'}">${isOnline?'ACTIVE':'LOST'}</span>`;
+            item.onclick = () => {
+                map.flyTo([unit.latitude, unit.longitude], 16);
+                document.getElementById("detailBox").innerHTML = `
+                    <b>CALLSIGN:</b> ${nama}<br>
+                    <b>STATUS:</b> ${isOnline?'ACTIVE':'SIGNAL LOST'}<br>
+                    <b>COORD:</b> ${unit.latitude.toFixed(5)}, ${unit.longitude.toFixed(5)}<br>
+                    <b>SPEED:</b> ${unit.speed} KM/H<br>
+                    <b>ACCURACY:</b> ${unit.accuracy} M<br>
+                    <b>LAST CONTACT:</b> ${new Date(unit.waktu).toLocaleTimeString()}
+                `;
+            };
+            list.appendChild(item);
+        });
+
+        document.getElementById("totalUnit").innerText = count;
+        document.getElementById("onlineUnit").innerText = online;
+    });
+
+    window.logout = () => { localStorage.removeItem("auth"); window.location.href="login.html"; };
 </script>
-
 </body>
 </html>
