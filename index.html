@@ -3,7 +3,7 @@
 <head>  
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UNIT MONITORING - TACTICAL V6.0</title>
+    <title>UNIT MONITORING - TACTICAL V7.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -20,6 +20,7 @@
             background: var(--dark-bg); color: var(--neon-green); 
             overflow: hidden; height: 100vh; display: flex; flex-direction: column; 
             user-select: none; -webkit-tap-highlight-color: transparent;
+            transition: filter 0.3s ease;
         }
 
         /* Tactical Grid Background */
@@ -36,13 +37,6 @@
         }
         @keyframes moveGrid { from { background-position: 0 0; } to { background-position: 0 300px; } }
 
-        /* CRT Scanline & Glitch */
-        body::before { 
-            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; 
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-            z-index: 1000; background-size: 100% 3px; pointer-events: none; opacity: 0.4;
-        }
-
         .header { 
             background: rgba(2, 18, 2, 0.95); padding: 12px; text-align: center; 
             border-bottom: 2px solid var(--neon-green); font-weight: bold; 
@@ -53,15 +47,18 @@
 
         .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 15px; position: relative; }
 
-        /* Compass V2 */
+        /* Signal Strength Bars */
+        .sig-container { display: flex; gap: 3px; align-items: flex-end; height: 20px; margin-bottom: 10px; }
+        .sig-bar { width: 4px; background: rgba(0,255,0,0.1); border-radius: 1px; transition: 0.3s; }
+        .sig-bar.active { background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green); }
+
         #compass {
-            width: 120px; height: 120px; border: 2px solid var(--neon-green);
+            width: 110px; height: 110px; border: 2px solid var(--neon-green);
             border-radius: 50%; margin-bottom: 15px; position: relative;
             background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%);
-            box-shadow: 0 0 20px rgba(0,255,0,0.2);
+            box-shadow: 0 0 20px rgba(0,255,0,0.2); transition: transform 0.1s linear;
         }
-        .needle { position: absolute; top: 50%; left: 50%; width: 3px; height: 50px; background: var(--cyan); transform-origin: bottom; transform: translate(-50%, -100%); box-shadow: 0 0 10px var(--cyan); }
-        .needle::after { content: ""; position: absolute; bottom: -5px; left: -1px; width: 5px; height: 10px; background: var(--danger); }
+        .needle { position: absolute; top: 50%; left: 50%; width: 3px; height: 45px; background: var(--cyan); transform-origin: bottom; transform: translate(-50%, -100%); box-shadow: 0 0 10px var(--cyan); }
 
         .card { 
             background: var(--glass-bg); padding: 20px; width: 100%; max-width: 350px; 
@@ -69,10 +66,8 @@
             border-radius: 10px; backdrop-filter: blur(10px);
         }
 
-        .scan-bar {
-            position: absolute; width: 100%; height: 4px; background: var(--cyan);
-            top: -10px; left: 0; opacity: 0.5; box-shadow: 0 0 15px var(--cyan);
-        }
+        .scan-bar { position: absolute; width: 100%; height: 4px; background: var(--cyan); top: -10px; left: 0; opacity: 0.5; box-shadow: 0 0 15px var(--cyan); }
+        @keyframes scan { 0% { top: -10%; } 100% { top: 110%; } }
 
         input { 
             width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.9); 
@@ -81,26 +76,39 @@
             box-sizing: border-box; outline: none; text-align: center; font-size: 16px;
         }
 
+        .btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
         button { 
-            width: 100%; padding: 18px; border: none; font-weight: bold; cursor: pointer; 
+            width: 100%; padding: 16px; border: none; font-weight: bold; cursor: pointer; 
             font-family: 'Orbitron'; text-transform: uppercase; transition: 0.3s;
             clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
         }
 
-        #btnTrack { background: var(--neon-green); color: #000; margin-bottom: 10px; }
-        #btnSOS { background: var(--danger); color: #fff; display: none; font-size: 12px; margin-top: 10px; animation: pulseRed 1.5s infinite; }
+        #btnTrack { background: var(--neon-green); color: #000; }
+        #btnTrack:disabled { background: #003300; color: #008800; cursor: wait; }
         
-        @keyframes pulseRed { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .btn-terminate { background: transparent; color: var(--danger); border: 1px solid var(--danger); font-size: 11px; display: none; }
+        #btnSOS { background: var(--danger); color: #fff; display: none; font-size: 12px; animation: pulseRed 1.5s infinite; }
 
         .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; font-family: 'JetBrains Mono'; }
-        .tel-box { background: rgba(0,0,0,0.7); padding: 8px; border: 1px solid rgba(0, 255, 0, 0.2); position: relative; }
-        .tel-label { font-size: 8px; color: var(--cyan); display: block; margin-bottom: 2px; }
+        .tel-box { background: rgba(0,0,0,0.7); padding: 8px; border: 1px solid rgba(0, 255, 0, 0.2); }
+        .tel-label { font-size: 8px; color: var(--cyan); display: block; }
         .tel-val { font-size: 14px; font-weight: bold; color: #fff; }
 
         #status-bar { width: 100%; max-width: 350px; display: flex; justify-content: space-between; font-size: 10px; margin-top: 15px; font-family: 'JetBrains Mono'; color: #888; }
         
-        .emergency-mode { background: #330000 !important; color: #ff0000 !important; border-color: #ff0000 !important; }
-        .emergency-mode .tel-box { border-color: #ff0000; }
+        /* Heartbeat effect */
+        .ping { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; display: inline-block; margin-right: 5px; opacity: 0; }
+        .ping.active { animation: blink 0.5s; }
+        @keyframes blink { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
+
+        /* Fullscreen Overlay for Terminate */
+        #scrub-screen {
+            position: fixed; inset: 0; background: #000; z-index: 10000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            color: var(--danger); font-family: 'JetBrains Mono'; text-align: center;
+        }
+
+        .emergency-mode { filter: sepia(1) saturate(5) hue-rotate(-50deg); }
     </style>
 </head>
 <body>
@@ -108,38 +116,53 @@
 <div class="grid-bg"></div>
 
 <div id="boot-screen" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; font-family: 'JetBrains Mono';">
-    <div style="color: var(--cyan); margin-bottom: 10px;" id="boot-text">> SYSTEM_INITIALIZING...</div>
-    <div style="width: 250px; height: 4px; background: #111; border-radius: 2px; overflow: hidden;">
-        <div id="boot-progress" style="width: 0%; height: 100%; background: var(--cyan);"></div>
-    </div>
+    <div style="color: var(--cyan); margin-bottom: 10px;" id="boot-text">> INITIALIZING_UPLINK...</div>
+    <div style="width: 250px; height: 4px; background: #111; overflow: hidden;"><div id="boot-progress" style="width: 0%; height: 100%; background: var(--cyan);"></div></div>
+</div>
+
+<div id="scrub-screen">
+    <div id="scrub-text" style="font-size: 18px; margin-bottom: 20px;">WIPING_DATA_LOCAL_&_REMOTE</div>
+    <div style="width: 200px; height: 2px; background: #200; overflow: hidden;"><div id="scrub-progress" style="width: 0%; height: 100%; background: var(--danger);"></div></div>
+    <div style="margin-top: 15px; font-size: 10px;">PROTOCOL ZERO INITIATED</div>
 </div>
 
 <div class="header">
     <span style="font-size: 10px;">859-TAC</span>
-    <span style="font-size: 14px;">UNIT MONITOR</span>
-    <span id="pwr" style="font-size: 10px;">BAT: --%</span>
+    <div style="display:flex; align-items:center;"><div id="hb" class="ping"></div><span>TACTICAL_V7</span></div>
+    <span id="pwr" style="font-size: 10px;">--%</span>
 </div>
 
 <div class="container">
+    <div class="sig-container" id="sig-bars">
+        <div class="sig-bar" style="height: 6px;"></div>
+        <div class="sig-bar" style="height: 10px;"></div>
+        <div class="sig-bar" style="height: 14px;"></div>
+        <div class="sig-bar" style="height: 18px;"></div>
+        <div class="sig-bar" style="height: 22px;"></div>
+    </div>
+
     <div id="compass"><div class="needle"></div></div>
 
     <div class="card" id="mainCard">
         <div class="scan-bar" id="scanner"></div>
-        <input type="text" id="nama" placeholder="CALLSIGN" maxlength="12" spellcheck="false">
+        <input type="text" id="nama" placeholder="UNIT_CALLSIGN" maxlength="12" spellcheck="false">
         
-        <button id="btnTrack">Initiate Uplink</button>
-        <button id="btnSOS">SEND EMERGENCY BEACON</button>
+        <div class="btn-group">
+            <button id="btnTrack">Initiate Uplink</button>
+            <button id="btnSOS">SEND SOS BEACON</button>
+            <button id="btnTerm" class="btn-terminate">SCRUB & TERMINATE</button>
+        </div>
         
         <div class="telemetry">
-            <div class="tel-box"><span class="tel-label">LAT</span><span class="tel-val" id="lat">0.0000</span></div>
-            <div class="tel-box"><span class="tel-label">LON</span><span class="tel-val" id="lon">0.0000</span></div>
-            <div class="tel-box"><span class="tel-label">SPEED</span><span class="tel-val"><span id="spd">0</span><small> KMH</small></span></div>
+            <div class="tel-box"><span class="tel-label">LATITUDE</span><span class="tel-val" id="lat">0.0000</span></div>
+            <div class="tel-box"><span class="tel-label">LONGITUDE</span><span class="tel-val" id="lon">0.0000</span></div>
+            <div class="tel-box"><span class="tel-label">SPD/ACC</span><span class="tel-val"><span id="spd">0</span><small>kmh</small> / <span id="acc">0</span><small>m</small></span></div>
             <div class="tel-box"><span class="tel-label">PITCH</span><span class="tel-val" id="pitch">0°</span></div>
         </div>
     </div>
 
     <div id="status-bar">
-        <span id="msg">IDLE_STANDBY</span>
+        <span id="msg">AWAITING_AUTH</span>
         <span id="time">00:00:00</span>
     </div>
 </div>
@@ -163,18 +186,19 @@
 
     const btn = document.getElementById("btnTrack");
     const btnSOS = document.getElementById("btnSOS");
-    const scanner = document.getElementById("scanner");
+    const btnTerm = document.getElementById("btnTerm");
+    const hb = document.getElementById("hb");
     let isEmergency = false;
     let watchID = null;
 
-    // Clock & Battery
+    // Time & Battery
     setInterval(() => { document.getElementById("time").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
     navigator.getBattery?.().then(bat => {
-        const up = () => document.getElementById("pwr").innerText = `BAT: ${Math.round(bat.level * 100)}%`;
+        const up = () => document.getElementById("pwr").innerText = `${Math.round(bat.level * 100)}%`;
         up(); bat.onlevelchange = up;
     });
 
-    // Motion Sensors (Pitch/Roll)
+    // Orientation
     window.addEventListener("deviceorientation", (e) => {
         let heading = e.webkitCompassHeading || (360 - e.alpha);
         document.getElementById("compass").style.transform = `rotate(${-heading}deg)`;
@@ -183,59 +207,73 @@
 
     btn.onclick = async function() {
         const nama = document.getElementById("nama").value.trim().toUpperCase();
-        if(!nama) return alert("ENTER CALLSIGN");
+        if(!nama) return alert("CALLSIGN REQUIRED");
 
-        // Visual Boot Sequence
         document.getElementById("boot-screen").style.display = 'flex';
-        const steps = ["CRYPTING...", "SYNCING SAT...", "LINKING HQ...", "CONNECTED"];
         for(let i=0; i<=100; i+=10) {
             document.getElementById("boot-progress").style.width = i + '%';
-            if(i % 25 === 0) document.getElementById("boot-text").innerText = `> ${steps[i/25]}`;
-            await new Promise(r => setTimeout(r, 60));
+            await new Promise(r => setTimeout(r, 50));
         }
         document.getElementById("boot-screen").style.display = 'none';
 
-        // UI Changes
-        btn.disabled = true;
-        btn.innerText = "LINK ACTIVE";
-        btn.style.background = "#004400";
-        btn.style.color = "#00ff00";
+        btn.style.display = "none";
         btnSOS.style.display = "block";
-        scanner.style.animation = "scan 2s infinite linear";
+        btnTerm.style.display = "block";
+        document.getElementById("scanner").style.animation = "scan 3s infinite linear";
 
-        // GPS Tracking
         watchID = navigator.geolocation.watchPosition((pos) => {
-            const data = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                speed: Math.round((pos.coords.speed || 0) * 3.6),
-                accuracy: Math.round(pos.coords.accuracy),
-                waktu: Date.now(),
-                status: isEmergency ? "EMERGENCY" : "ONLINE"
+            const updates = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                spd: Math.round((pos.coords.speed || 0) * 3.6),
+                acc: Math.round(pos.coords.accuracy),
+                ts: Date.now(),
+                status: isEmergency ? "EMERGENCY" : "ACTIVE"
             };
 
-            set(ref(db, "live/" + nama), data);
+            set(ref(db, "live/" + nama), updates);
             onDisconnect(ref(db, "live/" + nama)).remove();
 
-            document.getElementById("lat").innerText = data.latitude.toFixed(4);
-            document.getElementById("lon").innerText = data.longitude.toFixed(4);
-            document.getElementById("spd").innerText = data.speed;
-            document.getElementById("msg").innerText = isEmergency ? "!! SIGNALING SOS !!" : "DATA_STREAMING";
+            // Heartbeat & Signal UI
+            hb.classList.add('active'); setTimeout(() => hb.classList.remove('active'), 500);
+            updateSignalBars(updates.acc);
+
+            document.getElementById("lat").innerText = updates.lat.toFixed(4);
+            document.getElementById("lon").innerText = updates.lon.toFixed(4);
+            document.getElementById("spd").innerText = updates.spd;
+            document.getElementById("acc").innerText = updates.acc;
+            document.getElementById("msg").innerText = isEmergency ? "!! SOS_BROADCASTING !!" : "LINK_STABLE";
         }, null, { enableHighAccuracy: true });
     };
 
-    btnSOS.onclick = function() {
+    function updateSignalBars(acc) {
+        const bars = document.querySelectorAll('.sig-bar');
+        bars.forEach(b => b.classList.remove('active'));
+        let count = acc < 10 ? 5 : acc < 30 ? 4 : acc < 60 ? 3 : acc < 100 ? 2 : 1;
+        for(let i=0; i<count; i++) bars[i].classList.add('active');
+    }
+
+    btnSOS.onclick = () => {
         isEmergency = !isEmergency;
-        if(isEmergency) {
-            document.body.classList.add("emergency-mode");
-            document.getElementById("mainCard").classList.add("emergency-mode");
-            btnSOS.innerText = "CANCEL SOS BEACON";
-            if(navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 500]);
-        } else {
-            document.body.classList.remove("emergency-mode");
-            document.getElementById("mainCard").classList.remove("emergency-mode");
-            btnSOS.innerText = "SEND EMERGENCY BEACON";
+        document.body.classList.toggle("emergency-mode");
+        btnSOS.innerText = isEmergency ? "CANCEL SOS" : "SEND SOS BEACON";
+    };
+
+    btnTerm.onclick = async function() {
+        if(!confirm("CONFIRM DATA SCRUB?")) return;
+        
+        const nama = document.getElementById("nama").value.trim().toUpperCase();
+        document.getElementById("scrub-screen").style.display = "flex";
+        
+        // Protocol Zero Animation
+        for(let i=0; i<=100; i+=2) {
+            document.getElementById("scrub-progress").style.width = i + '%';
+            if(i === 40) await remove(ref(db, "live/" + nama)); // Hapus data di tengah loading
+            await new Promise(r => setTimeout(r, 30));
         }
+
+        document.body.style.filter = "invert(1) contrast(5) blur(10px)";
+        setTimeout(() => window.location.reload(), 500);
     };
 </script>
 </body>
