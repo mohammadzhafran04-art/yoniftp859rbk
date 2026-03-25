@@ -133,7 +133,7 @@
         <div id="visualFeed">
             <div class="hud-text">> VISUAL_RECON_ALPHA_LIVE</div>
             <div class="hud-overlay"></div>
-            <iframe id="visualFrame" src=""></iframe>
+            <iframe id="visualFrame" src="" allowfullscreen></iframe>
         </div>
 
         <div class="stat-card" style="margin-top: 20px; text-align: left; border-style: dashed; flex-grow: 1;">
@@ -236,8 +236,11 @@
         const lat = unit.latitude;
         const lng = unit.longitude;
 
-        // FIX: Menggunakan URL Embed resmi untuk Street View yang lebih stabil
+        // Versi Street View Embed yang lebih kompatibel tanpa harus login Google Cloud Console
         visualFrame.src = `https://www.google.com/maps/embed/v1/streetview?key=${firebaseConfig.apiKey}&location=${lat},${lng}&heading=210&pitch=10&fov=90`;
+        
+        // Cadangan jika API Key ditolak oleh sistem Google Street View:
+        // visualFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&layer=c&cbll=${lat},${lng}&cbp=12,210,0,0,10&source=browser&output=embed`;
     }
 
     window.logout = () => { localStorage.removeItem("auth"); window.location.href="login.html"; };
