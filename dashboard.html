@@ -67,19 +67,24 @@
             box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
         }
 
-        /* --- STYLING BARU UNTUK STREET VIEW --- */
+        /* --- FIXED VISUAL FEED --- */
         #visualFeed {
-            width: 100%; height: 180px; border: 1px solid var(--neon-blue);
-            margin-top: 15px; position: relative; background: #111;
+            width: 100%; height: 200px; border: 1px solid var(--neon-blue);
+            margin-top: 15px; position: relative; background: #000;
             overflow: hidden; display: none;
         }
-        #visualFeed img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.8) contrast(1.2) sepia(0.2) hue-rotate(100deg); }
+        #visualFrame { 
+            width: 100%; height: 100%; border: none;
+            /* Filter Matrix/Tactical */
+            filter: brightness(0.7) contrast(1.2) grayscale(1) sepia(1) hue-rotate(80deg) saturate(5);
+        }
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             border: 1px solid rgba(0, 242, 255, 0.3); pointer-events: none;
             background: linear-gradient(to bottom, transparent 90%, rgba(0, 242, 255, 0.1));
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
         }
-        .hud-text { position: absolute; top: 5px; left: 5px; font-size: 8px; color: var(--neon-blue); text-shadow: 1px 1px #000; }
+        .hud-text { position: absolute; top: 5px; left: 5px; font-size: 8px; color: var(--neon-blue); text-shadow: 1px 1px #000; z-index: 10; }
 
         .tag { font-size: 8px; color: var(--neon-green); display: block; margin-bottom: 5px; opacity: 0.7; }
         .val-large { font-size: 22px; font-weight: bold; display: block; }
@@ -130,7 +135,7 @@
         <div id="visualFeed">
             <div class="hud-text">> VISUAL_RECON_ALPHA_LIVE</div>
             <div class="hud-overlay"></div>
-            <img id="streetImg" src="" alt="Street View">
+            <iframe id="visualFrame" src=""></iframe>
         </div>
 
         <div class="stat-card" style="margin-top: 20px; text-align: left; border-style: dashed; flex-grow: 1;">
@@ -161,7 +166,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- MAP CONFIG ---
     const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Esri Satellite' });
     const labelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png');
     
@@ -173,10 +177,7 @@
 
     onValue(ref(db, "live"), snap => {
         const data = snap.val();
-        if(!data) {
-            document.getElementById("listUnit").innerHTML = "<div style='font-size:10px; opacity:0.5'>> NO ASSETS DETECTED</div>";
-            return;
-        }
+        if(!data) return;
 
         const list = document.getElementById("listUnit");
         const searchTerm = document.getElementById("search").value.toUpperCase();
@@ -189,14 +190,12 @@
             count++; if(isOnline) online++;
 
             if(nama.toUpperCase().includes(searchTerm)) {
-                // Marker Update
                 if(!markers[nama]) {
                     const icon = L.divIcon({ className: '', html: `<div class="marker-pulse" id="m-${nama}"></div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
                     markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: icon}).addTo(map);
                 }
                 markers[nama].setLatLng([unit.latitude, unit.longitude]);
 
-                // Item List UI
                 const item = document.createElement("div");
                 item.className = `unit-item ${selectedUnit === nama ? 'selected' : ''}`;
                 item.innerHTML = `
@@ -221,7 +220,6 @@
     });
 
     function updateDetail(nama, unit, isOnline) {
-        // Update Telemetry
         document.getElementById("detailBox").innerHTML = `
             <span style="color:var(--neon-blue)">// ASSET_IDENT: ${nama}</span><br>
             STATUS : <span style="color:${isOnline?'#00ff00':'#ff3333'}">${isOnline?'ONLINE':'OFFLINE'}</span><br>
@@ -233,16 +231,16 @@
             UPLINK : ENCRYPTED_SATELLITE
         `;
 
-        // UPDATE VISUAL FEED (Street View)
         const visualFeed = document.getElementById("visualFeed");
-        const streetImg = document.getElementById("streetImg");
+        const visualFrame = document.getElementById("visualFrame");
         
         visualFeed.style.display = "block";
-        // Menggunakan Google Maps Static API (Tanpa Key biasanya muncul watermark, tapi untuk testing koordinat sangat akurat)
-        // Jika kamu punya API KEY, tambahkan &key=YOUR_API_KEY di ujung URL
-        const streetUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${unit.latitude},${unit.longitude}&fov=90&heading=235&pitch=10&sensor=false`;
         
-        streetImg.src = streetUrl;
+        // Menggunakan Google Maps Embed URL untuk Street View
+        // Cara ini lebih aman dari error API Key karena berjalan sebagai iframe
+        const lat = unit.latitude;
+        const lng = unit.longitude;
+        visualFrame.src = `https://www.google.com/maps/embed/v1/streetview?key=${firebaseConfig.apiKey}&location=${lat},${lng}&heading=210&pitch=10&fov=90`;
     }
 
     window.logout = () => { localStorage.removeItem("auth"); window.location.href="login.html"; };
