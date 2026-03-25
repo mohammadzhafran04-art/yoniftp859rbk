@@ -74,13 +74,13 @@
         }
         #visualFrame { 
             width: 100%; height: 100%; border: none;
-            filter: brightness(0.9) contrast(1.1);
+            filter: brightness(1.1) contrast(1.2) saturate(0.8);
         }
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             border: 1px solid rgba(0, 242, 255, 0.3); pointer-events: none;
-            background: linear-gradient(to bottom, transparent 90%, rgba(0, 242, 255, 0.1));
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
+            background: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 242, 255, 0.05) 2px);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
         }
         .hud-text { position: absolute; top: 5px; left: 5px; font-size: 8px; color: var(--neon-blue); text-shadow: 1px 1px #000; z-index: 10; font-family: 'JetBrains Mono'; }
 
@@ -131,7 +131,7 @@
         <div id="detailBox">SELECT ASSET TO SYNC...</div>
         
         <div id="visualFeed">
-            <div class="hud-text">> VISUAL_RECON_LIVE</div>
+            <div class="hud-text">> VISUAL_RECON_LIVE_FEED</div>
             <div class="hud-overlay"></div>
             <iframe id="visualFrame" src="" allowfullscreen></iframe>
         </div>
@@ -237,9 +237,10 @@
         const lat = unit.latitude;
         const lng = unit.longitude;
 
-        // FIX: Menggunakan Google Maps Embed API (Place Mode) yang lebih bersahabat dengan API Key standar.
-        // Ini akan memunculkan gambar lokasi (Photo/StreetView) persis seperti di screenshot Google Maps yang kamu kirim.
-        visualFrame.src = `https://www.google.com/maps/embed/v1/place?key=${firebaseConfig.apiKey}&q=${lat},${lng}&zoom=18&maptype=satellite`;
+        // --- SOLUSI BYPASS API REJECTED ---
+        // Menggunakan URL Google Maps public embed yang tidak memerlukan aktivasi khusus di Cloud Console.
+        // t=k (Satelit), t=h (Hybrid), t=m (Roadmap)
+        visualFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=id&z=18&t=k&output=embed`;
     }
 
     window.logout = () => { localStorage.removeItem("auth"); window.location.href="login.html"; };
