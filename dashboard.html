@@ -2,85 +2,123 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>COMMAND CENTER - HQ DASHBOARD</title>
+    <title>COMMAND CENTER - TACTICAL SATELLITE HD</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-        body { margin: 0; font-family: 'Orbitron', sans-serif; background: #050a05; color: #00ff00; overflow: hidden; }
-        
-        .header {
-            background: #0a1a0a; padding: 15px 25px; display: flex; justify-content: space-between;
-            align-items: center; border-bottom: 2px solid #00ff00; box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        :root {
+            --neon-green: #00ff00;
+            --dark-panel: rgba(5, 15, 5, 0.9);
         }
 
-        .container { display: grid; grid-template-columns: 300px 1fr 300px; height: calc(100vh - 65px); }
+        body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; }
         
-        .panel { background: rgba(10, 25, 10, 0.95); padding: 20px; border-right: 1px solid #00ff00; overflow-y: auto; }
-        .panel-right { border-right: none; border-left: 1px solid #00ff00; }
+        /* CRT Overlay Effect */
+        body::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            z-index: 1000; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
 
-        #map { background: #000; height: 100%; }
+        .header {
+            background: #051105; padding: 12px 25px; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 2px solid var(--neon-green);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4); z-index: 1001; position: relative;
+        }
+
+        .container { display: grid; grid-template-columns: 320px 1fr 320px; height: calc(100vh - 65px); position: relative; }
+        
+        .panel { 
+            background: var(--dark-panel); padding: 20px; 
+            border-right: 1px solid var(--neon-green); overflow-y: auto; 
+            backdrop-filter: blur(10px); z-index: 1001;
+        }
+        .panel-right { border-right: none; border-left: 1px solid var(--neon-green); }
+
+        #map { background: #000; height: 100%; z-index: 1; }
 
         .stat-card {
-            background: #000; border: 1px solid #00ff00; padding: 15px; margin-bottom: 15px;
+            background: rgba(0,0,0,0.8); border: 1px solid var(--neon-green); padding: 15px; margin-bottom: 15px;
             box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2);
         }
 
         .unit-item {
-            padding: 12px; border-bottom: 1px solid rgba(0, 255, 0, 0.2); cursor: pointer; transition: 0.2s;
+            padding: 15px; border-bottom: 1px solid rgba(0, 255, 0, 0.2); cursor: pointer; transition: 0.2s;
+            background: rgba(0,0,0,0.3); margin-bottom: 5px; border-radius: 4px;
         }
 
-        .unit-item:hover { background: rgba(0, 255, 0, 0.1); }
-        .online { color: #00ff88; font-weight: bold; }
-        .offline { color: #ff3333; }
+        .unit-item:hover { background: rgba(0, 255, 0, 0.1); border-left: 4px solid var(--neon-green); }
+        .online { color: #00ff88; text-shadow: 0 0 5px #00ff88; }
+        .offline { color: #ff3333; text-shadow: 0 0 5px #ff3333; }
 
-        /* Custom Marker CSS */
+        /* Tactical Marker */
         .marker-pulse {
-            width: 15px; height: 15px; background: #00ff00; border: 2px solid white;
-            border-radius: 50%; box-shadow: 0 0 15px #00ff00;
-            animation: pulse-ring 1.5s infinite;
+            width: 18px; height: 18px; background: rgba(0, 255, 0, 0.8); 
+            border: 2px solid #fff; border-radius: 50%;
+            box-shadow: 0 0 15px var(--neon-green);
+            animation: pulse-ring 1.2s infinite;
         }
 
         @keyframes pulse-ring {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
+            0% { transform: scale(0.6); opacity: 1; }
+            100% { transform: scale(2.2); opacity: 0; }
         }
 
-        .logout-btn {
-            background: #440000; color: white; border: 1px solid red;
-            padding: 8px 15px; cursor: pointer; font-family: 'Orbitron';
+        #detailBox {
+            font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.8;
+            color: #fff; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px;
         }
+
+        .tag { font-size: 9px; color: var(--neon-green); display: block; margin-top: 10px; }
+
+        .logout-btn {
+            background: #330000; color: #ff0000; border: 1px solid #ff0000;
+            padding: 8px 15px; cursor: pointer; font-family: 'Orbitron'; font-size: 10px;
+            transition: 0.3s;
+        }
+        .logout-btn:hover { background: #ff0000; color: #fff; }
+
+        /* Leaflet Control Adjustment */
+        .leaflet-control-attribution { background: rgba(0,0,0,0.7) !important; color: #555 !important; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div style="font-size: 20px;">🛰 COMMAND CENTER <span style="font-size: 12px; color: #888;">v2.0 HD</span></div>
-    <button class="logout-btn" onclick="logout()">TERMINATE SESSION</button>
+    <div style="font-size: 18px; letter-spacing: 2px;">🛰 SAT-COM HQ <span style="font-size: 10px; color: #888;">// GLOBAL MONITORING</span></div>
+    <button class="logout-btn" onclick="logout()">TERMINATE UPLINK</button>
 </div>
 
 <div class="container">
     <div class="panel">
         <div class="stat-card">
-            <div style="font-size: 10px;">TOTAL ASSETS</div>
-            <div id="totalUnit" style="font-size: 24px;">0</div>
+            <span class="tag">TOTAL DEPLOYED ASSETS</span>
+            <div id="totalUnit" style="font-size: 28px; font-weight: bold;">0</div>
         </div>
         <div class="stat-card" style="border-color: #00ff88;">
-            <div style="font-size: 10px;">ACTIVE UNITS</div>
-            <div id="onlineUnit" style="font-size: 24px; color: #00ff88;">0</div>
+            <span class="tag" style="color: #00ff88;">ACTIVE TRANSMISSIONS</span>
+            <div id="onlineUnit" style="font-size: 28px; font-weight: bold; color: #00ff88;">0</div>
         </div>
         
-        <h3>UNIT LIST</h3>
-        <input type="text" id="search" placeholder="FILTER CALLSIGN..." style="width:100%; padding:8px; background:#000; border:1px solid #00ff00; color:#00ff00; font-family:'Orbitron';">
-        <div id="listUnit" style="margin-top:15px;"></div>
+        <h3 style="font-size: 14px; border-left: 3px solid var(--neon-green); padding-left: 10px;">UNIT DIRECTORY</h3>
+        <input type="text" id="search" placeholder="SEARCH CALLSIGN..." style="width:100%; padding:10px; background:#000; border:1px solid var(--neon-green); color:var(--neon-green); font-family:'Orbitron'; outline:none; margin-bottom:15px;">
+        <div id="listUnit"></div>
     </div>
 
     <div id="map"></div>
 
     <div class="panel panel-right">
-        <h3>UNIT TELEMETRY</h3>
-        <div id="detailBox" style="font-size: 13px; line-height: 2;">
-            SELECT UNIT TO VIEW DATA
+        <h3 style="font-size: 14px; border-left: 3px solid var(--neon-green); padding-left: 10px;">DATA STREAM</h3>
+        <div id="detailBox">
+            <span style="color: #444;">AWAITING SELECTION...</span>
+        </div>
+        
+        <div class="stat-card" style="margin-top: 20px; border: 1px dashed #444;">
+            <span class="tag">SYSTEM STATUS</span>
+            <div style="font-size: 11px; color: #00ff00;">● ALL SYSTEMS NOMINAL</div>
+            <div style="font-size: 11px; color: #888;">ENC: AES-256 BIT</div>
         </div>
     </div>
 </div>
@@ -102,11 +140,22 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Setup Map with Dark Mode
-    const map = L.map("map").setView([-2, 118], 5);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CartoDB'
+    // Setup Map with REAL World Imagery (Satellite)
+    const map = L.map("map", {
+        zoomControl: false
+    }).setView([-2, 118], 5);
+
+    // Layer Satelit Utama (Esri World Imagery)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
     }).addTo(map);
+
+    // Layer Label Jalan (Agar tetap tahu nama jalan di atas satelit)
+    const labelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+        pane: 'shadowPane' // Menaruh label di atas marker sedikit
+    }).addTo(map);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     let markers = {};
     let paths = {};
@@ -116,6 +165,7 @@
         if(!data) return;
 
         const list = document.getElementById("listUnit");
+        const searchTerm = document.getElementById("search").value.toUpperCase();
         list.innerHTML = "";
         let count = 0, online = 0;
 
@@ -124,32 +174,48 @@
             const isOnline = (Date.now() - unit.waktu) < 30000;
             count++; if(isOnline) online++;
 
-            // Update/Create Marker
-            if(!markers[nama]) {
-                const customIcon = L.divIcon({ className: 'custom-m', html: '<div class="marker-pulse"></div>' });
-                markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: customIcon}).addTo(map);
-                paths[nama] = L.polyline([], {color: '#00ff00', weight: 2, opacity: 0.5}).addTo(map);
-            }
-            
-            markers[nama].setLatLng([unit.latitude, unit.longitude]);
-            paths[nama].addLatLng([unit.latitude, unit.longitude]);
+            if(nama.toUpperCase().includes(searchTerm)) {
+                // Update/Create Marker
+                if(!markers[nama]) {
+                    const customIcon = L.divIcon({ 
+                        className: 'tactical-m', 
+                        html: '<div class="marker-pulse"></div>',
+                        iconSize: [20, 20],
+                        iconAnchor: [10, 10]
+                    });
+                    markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: customIcon}).addTo(map);
+                    paths[nama] = L.polyline([], {color: '#00ff00', weight: 3, opacity: 0.7, dashArray: '5, 10'}).addTo(map);
+                }
+                
+                markers[nama].setLatLng([unit.latitude, unit.longitude]);
+                paths[nama].addLatLng([unit.latitude, unit.longitude]);
 
-            // Unit List Item
-            const item = document.createElement("div");
-            item.className = "unit-item";
-            item.innerHTML = `<strong>${nama}</strong> <span style="float:right" class="${isOnline?'online':'offline'}">${isOnline?'ACTIVE':'LOST'}</span>`;
-            item.onclick = () => {
-                map.flyTo([unit.latitude, unit.longitude], 16);
-                document.getElementById("detailBox").innerHTML = `
-                    <b>CALLSIGN:</b> ${nama}<br>
-                    <b>STATUS:</b> ${isOnline?'ACTIVE':'SIGNAL LOST'}<br>
-                    <b>COORD:</b> ${unit.latitude.toFixed(5)}, ${unit.longitude.toFixed(5)}<br>
-                    <b>SPEED:</b> ${unit.speed} KM/H<br>
-                    <b>ACCURACY:</b> ${unit.accuracy} M<br>
-                    <b>LAST CONTACT:</b> ${new Date(unit.waktu).toLocaleTimeString()}
+                // Unit List Item UI
+                const item = document.createElement("div");
+                item.className = "unit-item";
+                item.innerHTML = `
+                    <div style="font-size: 12px; font-weight: bold;">${nama}</div>
+                    <div style="font-size: 9px;" class="${isOnline?'online':'offline'}">
+                        ${isOnline ? '● SIGNAL ACTIVE' : '○ CONNECTION INTERRUPTED'}
+                    </div>
                 `;
-            };
-            list.appendChild(item);
+                item.onclick = () => {
+                    map.flyTo([unit.latitude, unit.longitude], 17, { duration: 2 });
+                    document.getElementById("detailBox").innerHTML = `
+                        <span style="color:var(--neon-green)">[ UNIT PROFILE ]</span><br>
+                        ID      : ${nama}<br>
+                        STATUS  : ${isOnline?'ACTIVE':'OFFLINE'}<br><br>
+                        <span style="color:var(--neon-green)">[ TELEMETRY ]</span><br>
+                        LAT     : ${unit.latitude.toFixed(6)}<br>
+                        LON     : ${unit.longitude.toFixed(6)}<br>
+                        SPEED   : ${unit.speed} KM/H<br>
+                        PREC    : ${unit.accuracy} M<br><br>
+                        <span style="color:var(--neon-green)">[ TIMESTAMP ]</span><br>
+                        LAST    : ${new Date(unit.waktu).toLocaleTimeString()}
+                    `;
+                };
+                list.appendChild(item);
+            }
         });
 
         document.getElementById("totalUnit").innerText = count;
