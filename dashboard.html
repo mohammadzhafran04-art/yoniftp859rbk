@@ -173,6 +173,7 @@
     let markers = {};
     let selectedUnit = null;
 
+    // Real-time listener dari Firebase
     onValue(ref(db, "live"), snap => {
         const data = snap.val();
         if(!data) return;
@@ -188,12 +189,15 @@
             count++; if(isOnline) online++;
 
             if(nama.toUpperCase().includes(searchTerm)) {
+                // Update atau Create Marker
                 if(!markers[nama]) {
                     const icon = L.divIcon({ className: '', html: `<div class="marker-pulse" id="m-${nama}"></div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
                     markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: icon}).addTo(map);
+                } else {
+                    markers[nama].setLatLng([unit.latitude, unit.longitude]);
                 }
-                markers[nama].setLatLng([unit.latitude, unit.longitude]);
 
+                // UI List
                 const item = document.createElement("div");
                 item.className = `unit-item ${selectedUnit === nama ? 'selected' : ''}`;
                 item.innerHTML = `
@@ -210,6 +214,7 @@
                 };
                 list.appendChild(item);
 
+                // Auto update detail jika unit sedang dipilih
                 if(selectedUnit === nama) updateDetail(nama, unit, isOnline);
             }
         });
@@ -236,11 +241,9 @@
         const lat = unit.latitude;
         const lng = unit.longitude;
 
-        // Versi Street View Embed yang lebih kompatibel tanpa harus login Google Cloud Console
-        visualFrame.src = `https://www.google.com/maps/embed/v1/streetview?key=${firebaseConfig.apiKey}&location=${lat},${lng}&heading=210&pitch=10&fov=90`;
-        
-        // Cadangan jika API Key ditolak oleh sistem Google Street View:
-        // visualFrame.src = `https://maps.google.com/maps?q=${lat},${lng}&layer=c&cbll=${lat},${lng}&cbp=12,210,0,0,10&source=browser&output=embed`;
+        // FIX: Menggunakan format URL Embed standar yang lebih stabil dan melewati pengecekan API Key
+        // Format ini memicu tampilan Street View secara otomatis jika tersedia koordinatnya.
+        visualFrame.src = `https://www.google.com/maps?q=${lat},${lng}&layer=c&cbll=${lat},${lng}&cbp=12,210,0,0,10&source=browser&output=embed`;
     }
 
     window.logout = () => { localStorage.removeItem("auth"); window.location.href="login.html"; };
