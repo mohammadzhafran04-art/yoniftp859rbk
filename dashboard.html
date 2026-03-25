@@ -2,81 +2,88 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>HQ - COMMAND CENTER v7.1</title>
+    <title>HQ - COMMAND CENTER v8.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #010a01; --panel-bg: rgba(2, 12, 2, 0.85); --danger: #ff1144; --warning: #ffcc00; }
+        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --panel-bg: rgba(0, 10, 0, 0.9); --danger: #ff1144; }
         
-        body { margin: 0; font-family: 'Orbitron', sans-serif; background: var(--dark-bg); color: var(--neon-green); overflow: hidden; height: 100vh; }
+        body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
         
-        /* Scanning Animation Overlay */
-        body::after { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.1); z-index: 1000; pointer-events: none; animation: scanLine 8s linear infinite; }
-        @keyframes scanLine { from { top: 0; } to { top: 100%; } }
+        /* Header */
+        .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); box-shadow: 0 0 20px rgba(0,255,0,0.3); z-index: 1000; position: relative; }
 
-        .header { background: rgba(0,0,0,0.95); padding: 12px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); box-shadow: 0 0 30px rgba(0,255,0,0.15); z-index: 100; }
+        .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); gap: 0; background: #000; }
         
-        .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); gap: 2px; background: #000; }
-        
-        .panel { background: var(--panel-bg); padding: 18px; overflow-y: auto; display: flex; flex-direction: column; backdrop-filter: blur(10px); border-right: 1px solid rgba(0,255,0,0.1); border-left: 1px solid rgba(0,255,0,0.1); }
+        .panel { background: var(--panel-bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
 
-        /* Map Styling */
-        #map { background: #000; filter: contrast(1.1) brightness(0.9) hue-rotate(10deg); }
-        .leaflet-container { background: #000 !important; }
+        /* Map Fix: High Contrast Satellite */
+        #map { background: #000; height: 100%; width: 100%; }
+        
+        /* Radar Pulse Animation */
+        @keyframes pulse-radar {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+        .radar-icon { border-radius: 50%; animation: pulse-radar 2s infinite; }
 
         /* Unit Cards */
-        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.1); margin-bottom: 12px; cursor: pointer; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(0,30,0,0.2); position: relative; overflow: hidden; }
-        .unit-card:hover { border-color: var(--neon-blue); background: rgba(0,242,255,0.05); transform: translateX(5px); }
-        .unit-card::before { content: ""; position: absolute; left: 0; top: 0; height: 100%; width: 3px; background: var(--neon-green); }
-        .unit-card.sos::before { background: var(--danger); }
-        .unit-card.sos { border-color: var(--danger); animation: pulseDanger 1.5s infinite; }
-        
-        @keyframes pulseDanger { 0% { background: rgba(255,0,0,0.1); } 50% { background: rgba(255,0,0,0.25); } 100% { background: rgba(255,0,0,0.1); } }
+        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; transition: 0.3s; background: rgba(0,40,0,0.3); position: relative; border-radius: 4px; }
+        .unit-card:hover { background: rgba(0,242,255,0.1); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,242,255,0.2); }
+        .unit-card.sos { border-color: var(--danger); animation: danger-glow 1s infinite alternate; }
+        @keyframes danger-glow { from { box-shadow: 0 0 5px var(--danger); } to { box-shadow: 0 0 20px var(--danger); } }
 
-        /* Telemetry Elements */
-        .bar-container { background: rgba(0,255,0,0.1); height: 4px; border-radius: 2px; margin-top: 5px; width: 100%; }
-        .bar-fill { height: 100%; background: var(--neon-blue); transition: width 0.5s ease; }
-        
-        #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid rgba(0,242,255,0.3); background: rgba(0,0,0,0.7); box-shadow: inset 0 0 15px rgba(0,242,255,0.1); }
+        /* Modern Progress Bars */
+        .stat-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; font-family: 'JetBrains Mono'; }
+        .progress-bg { background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
 
-        .visual-feed { width: 100%; height: 220px; margin-top: 15px; border: 1px solid #333; background: #000; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; filter: brightness(0.8) contrast(1.2); }
+        /* Detail Box */
+        #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.8); box-shadow: inset 0 0 10px var(--neon-blue); margin-bottom: 15px; }
 
-        .tag { font-size: 10px; color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 10px; display: block; font-weight: bold; }
-        .status-badge { font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: bold; }
+        .tag { font-size: 10px; color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 12px; display: block; font-weight: bold; border-left: 3px solid var(--neon-blue); padding-left: 8px; }
+
+        /* Satellite Feed Window */
+        .visual-feed { width: 100%; height: 200px; border: 1px solid #444; position: relative; border-radius: 8px; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* Analytics Panel */
+        .analytics { margin-top: auto; padding: 15px; background: rgba(0,20,0,0.5); border-top: 1px solid var(--neon-green); font-family: 'JetBrains Mono'; font-size: 10px; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div style="font-weight: bold; letter-spacing: 2px;">🛰 HQ COMMAND <span style="color: var(--neon-blue);">DASHBOARD v7.1</span></div>
-    <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 18px; color: var(--neon-blue);">00:00:00</div>
-    <div style="display: flex; gap: 20px; align-items: center;">
-        <span id="uplink-stat" style="font-size: 10px; color: var(--neon-green);">● ENCRYPTED_LINK_ACTIVE</span>
-    </div>
+    <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V8.0</span></div>
+    <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px; color: #fff; text-shadow: 0 0 10px var(--neon-blue);">00:00:00</div>
+    <div id="uplink-stat" style="font-size: 10px; color: var(--neon-green); border: 1px solid var(--neon-green); padding: 4px 10px;">SYSTEM_STABLE</div>
 </div>
 
 <div class="main-container">
     <div class="panel">
-        <span class="tag">ACTIVE_DEPLOYMENTS</span>
+        <span class="tag">OPERATIONAL_ASSETS</span>
         <div id="unit-list"></div>
+        <div class="analytics">
+            TOTAL ASSETS: <span id="count">0</span><br>
+            AVG VELOCITY: <span id="avg-spd">0</span> KMH
+        </div>
     </div>
 
     <div id="map"></div>
 
     <div class="panel">
-        <span class="tag">UNIT_INTELLIGENCE</span>
-        <div id="detail-box">SYSTEM READY. AWAITING UPLINK...</div>
+        <span class="tag">UNIT_SPECIFICATIONS</span>
+        <div id="detail-box">READY_FOR_UPLINK...</div>
         
+        <span class="tag">REALTIME_SATELLITE</span>
         <div class="visual-feed" id="v-feed" style="display:none;">
-            <div style="position:absolute; top:5px; left:5px; z-index:10; font-size:8px; background:rgba(0,0,0,0.7); padding:2px 5px;">SAT_VIEW_ENABLED</div>
             <iframe id="sat-view"></iframe>
         </div>
 
         <div style="margin-top: 20px;">
-            <span class="tag">NETWORK_LOGS</span>
-            <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#555; height: 150px; overflow:hidden;"></div>
+            <span class="tag">NETWORK_TRAFFIC</span>
+            <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#00ff00; height: 120px; overflow:hidden; opacity: 0.7;"></div>
         </div>
     </div>
 </div>
@@ -97,26 +104,27 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+
+    // Initialize Map with Google Hybrid (Satelit Nyata + Jalan)
     const map = L.map('map', { center: [-2.5, 118], zoom: 5, zoomControl: false });
     
-    // Custom Dark Map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; HQ COMMAND'
+    const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(map);
 
     let markers = {};
+    let pulseCircles = {};
     let selectedId = null;
 
-    // Clock
     setInterval(() => { 
         document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); 
     }, 1000);
 
-    // Logging system
     function addLog(msg) {
         const log = document.getElementById("logs");
         const entry = document.createElement("div");
-        entry.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        entry.innerText = `> ${msg}`;
         log.prepend(entry);
     }
 
@@ -124,89 +132,91 @@
         const data = snap.val() || {};
         const list = document.getElementById("unit-list");
         list.innerHTML = "";
+        let totalSpd = 0;
+        let count = 0;
 
-        // Check for removed units
-        Object.keys(markers).forEach(m_id => {
-            if(!data[m_id]) {
-                map.removeLayer(markers[m_id]);
-                delete markers[m_id];
-                addLog(`ASSET_${m_id} OFFLINE`);
+        // Cleanup OFFLINE
+        Object.keys(markers).forEach(id => {
+            if(!data[id]) {
+                map.removeLayer(markers[id]);
+                map.removeLayer(pulseCircles[id]);
+                delete markers[id];
+                delete pulseCircles[id];
+                addLog(`CONN_LOST: ${id}`);
             }
         });
 
         Object.keys(data).forEach(id => {
             const unit = data[id];
             const isSOS = unit.status === "EMERGENCY";
-            const lastUpdate = (Date.now() - unit.ts) / 1000;
-            const isOnline = lastUpdate < 30;
+            const isOnline = (Date.now() - unit.ts) < 30000;
+            count++;
+            totalSpd += unit.speed;
 
-            // Update Map Markers
-            const color = isSOS ? '#ff1144' : (isOnline ? '#00ff00' : '#555');
+            const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
+
+            // Map Markers & Pulse
             if(!markers[id]) {
                 markers[id] = L.circleMarker([unit.latitude, unit.longitude], {
-                    radius: 9, color: color, fillColor: color, fillOpacity: 0.6, weight: 2
+                    radius: 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1
                 }).addTo(map);
-                addLog(`NEW_ASSET: ${id} DETECTED`);
+                
+                pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
+                    radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
+                }).addTo(map);
+                addLog(`CONN_ESTABLISHED: ${id}`);
             } else {
                 markers[id].setLatLng([unit.latitude, unit.longitude]);
-                markers[id].setStyle({ color: color, fillColor: color });
+                markers[id].setStyle({ fillColor: color });
+                pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
+                pulseCircles[id].setStyle({ color: color });
             }
 
-            // Create List UI Card
+            // UI Cards
             const card = document.createElement("div");
             card.className = `unit-card ${isSOS ? 'sos' : ''}`;
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight: bold; font-size: 14px;">${id}</span>
-                    <span class="status-badge" style="background:${isSOS?'var(--danger)':'rgba(0,255,0,0.1)'}">
-                        ${isSOS ? 'SOS_EMERGENCY' : (isOnline ? 'ACTIVE' : 'STALE')}
-                    </span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-weight:bold;">${id}</span>
+                    <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${unit.status}</span>
                 </div>
-                <div style="margin-top: 10px;">
-                    <div style="display:flex; justify-content:space-between; font-size:9px;">
-                        <span>VELOCITY</span><span>${unit.speed} KM/H</span>
-                    </div>
-                    <div class="bar-container"><div class="bar-fill" style="width: ${Math.min(unit.speed, 100)}%"></div></div>
-                    
-                    <div style="display:flex; justify-content:space-between; font-size:9px; margin-top:8px;">
-                        <span>GPS_ACCURACY</span><span>${unit.accuracy}M</span>
-                    </div>
-                    <div class="bar-container"><div class="bar-fill" style="width: ${Math.max(100 - unit.accuracy, 10)}%; background:var(--neon-green)"></div></div>
-                </div>
+                <div class="stat-row"><span>VELOCITY</span><span>${unit.speed} KM/H</span></div>
+                <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed, 100)}%; background:var(--neon-blue)"></div></div>
+                <div class="stat-row"><span>GPS_PRECISION</span><span>${unit.accuracy}M</span></div>
+                <div class="progress-bg"><div class="progress-fill" style="width:${Math.max(100-unit.accuracy, 10)}%; background:var(--neon-green)"></div></div>
             `;
-
+            
             card.onclick = () => {
                 selectedId = id;
-                map.flyTo([unit.latitude, unit.longitude], 16);
+                map.flyTo([unit.latitude, unit.longitude], 18);
                 showDetail(id, unit);
             };
             list.appendChild(card);
-
             if(selectedId === id) showDetail(id, unit);
         });
+
+        // Update Analytics
+        document.getElementById("count").innerText = count;
+        document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
     });
 
     function showDetail(id, unit) {
         document.getElementById("detail-box").innerHTML = `
-            <div style="color:var(--neon-blue); border-bottom:1px solid rgba(0,242,255,0.2); margin-bottom:12px; padding-bottom:5px; font-weight:bold;">
-                DATA_STREAM: ${id}
+            <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:10px;">DATA_STREAM: ${id}</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>LAT:<br><span style="color:#fff">${unit.latitude.toFixed(6)}</span></div>
+                <div>LON:<br><span style="color:#fff">${unit.longitude.toFixed(6)}</span></div>
+                <div>SPEED:<br><span style="color:#fff">${unit.speed} KM/H</span></div>
+                <div>ACC:<br><span style="color:#fff">±${unit.accuracy}M</span></div>
             </div>
-            <table style="width:100%; font-size:10px;">
-                <tr><td style="color:#555">STATUS:</td><td style="color:${unit.status==='EMERGENCY'?'var(--danger)':'var(--neon-green)'}">${unit.status}</td></tr>
-                <tr><td style="color:#555">POSITION:</td><td>${unit.latitude.toFixed(5)}, ${unit.longitude.toFixed(5)}</td></tr>
-                <tr><td style="color:#555">VELOCITY:</td><td>${unit.speed} KM/H</td></tr>
-                <tr><td style="color:#555">PRECISION:</td><td>± ${unit.accuracy} METERS</td></tr>
-                <tr><td style="color:#555">UPLINK_TS:</td><td>${new Date(unit.ts).toLocaleTimeString()}</td></tr>
-            </table>
+            <div style="margin-top:10px; color:#888; font-size:9px;">LAST_UPLINK: ${new Date(unit.ts).toLocaleTimeString()}</div>
         `;
         
         const feed = document.getElementById("v-feed");
         const frame = document.getElementById("sat-view");
         feed.style.display = "block";
-        
-        // Perbaikan Google Maps Satellite Embed Link
-        const zoom = 18;
-        frame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=${zoom}&ie=UTF8&iwloc=&output=embed`;
+        // Fixed Google Satellite Feed
+        frame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&ie=UTF8&iwloc=&output=embed`;
     }
 </script>
 </body>
