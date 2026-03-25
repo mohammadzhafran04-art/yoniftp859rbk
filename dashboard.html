@@ -68,21 +68,21 @@
         }
 
         #visualFeed {
-            width: 100%; height: 200px; border: 1px solid var(--neon-blue);
+            width: 100%; height: 250px; border: 1px solid var(--neon-blue);
             margin-top: 15px; position: relative; background: #000;
             overflow: hidden; display: none;
         }
         #visualFrame { 
             width: 100%; height: 100%; border: none;
-            filter: brightness(0.8) contrast(1.2) grayscale(1) sepia(1) hue-rotate(85deg) saturate(5);
+            filter: brightness(0.9) contrast(1.1);
         }
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             border: 1px solid rgba(0, 242, 255, 0.3); pointer-events: none;
             background: linear-gradient(to bottom, transparent 90%, rgba(0, 242, 255, 0.1));
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
         }
-        .hud-text { position: absolute; top: 5px; left: 5px; font-size: 8px; color: var(--neon-blue); text-shadow: 1px 1px #000; z-index: 10; }
+        .hud-text { position: absolute; top: 5px; left: 5px; font-size: 8px; color: var(--neon-blue); text-shadow: 1px 1px #000; z-index: 10; font-family: 'JetBrains Mono'; }
 
         .tag { font-size: 8px; color: var(--neon-green); display: block; margin-bottom: 5px; opacity: 0.7; }
         .val-large { font-size: 22px; font-weight: bold; display: block; }
@@ -131,7 +131,7 @@
         <div id="detailBox">SELECT ASSET TO SYNC...</div>
         
         <div id="visualFeed">
-            <div class="hud-text">> VISUAL_RECON_ALPHA_LIVE</div>
+            <div class="hud-text">> VISUAL_RECON_LIVE</div>
             <div class="hud-overlay"></div>
             <iframe id="visualFrame" src="" allowfullscreen></iframe>
         </div>
@@ -173,7 +173,6 @@
     let markers = {};
     let selectedUnit = null;
 
-    // Real-time listener dari Firebase
     onValue(ref(db, "live"), snap => {
         const data = snap.val();
         if(!data) return;
@@ -189,7 +188,6 @@
             count++; if(isOnline) online++;
 
             if(nama.toUpperCase().includes(searchTerm)) {
-                // Update atau Create Marker
                 if(!markers[nama]) {
                     const icon = L.divIcon({ className: '', html: `<div class="marker-pulse" id="m-${nama}"></div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
                     markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: icon}).addTo(map);
@@ -197,7 +195,6 @@
                     markers[nama].setLatLng([unit.latitude, unit.longitude]);
                 }
 
-                // UI List
                 const item = document.createElement("div");
                 item.className = `unit-item ${selectedUnit === nama ? 'selected' : ''}`;
                 item.innerHTML = `
@@ -214,7 +211,6 @@
                 };
                 list.appendChild(item);
 
-                // Auto update detail jika unit sedang dipilih
                 if(selectedUnit === nama) updateDetail(nama, unit, isOnline);
             }
         });
@@ -241,9 +237,9 @@
         const lat = unit.latitude;
         const lng = unit.longitude;
 
-        // FIX: Menggunakan format URL Embed standar yang lebih stabil dan melewati pengecekan API Key
-        // Format ini memicu tampilan Street View secara otomatis jika tersedia koordinatnya.
-        visualFrame.src = `https://www.google.com/maps?q=${lat},${lng}&layer=c&cbll=${lat},${lng}&cbp=12,210,0,0,10&source=browser&output=embed`;
+        // FIX: Menggunakan Google Maps Embed API (Place Mode) yang lebih bersahabat dengan API Key standar.
+        // Ini akan memunculkan gambar lokasi (Photo/StreetView) persis seperti di screenshot Google Maps yang kamu kirim.
+        visualFrame.src = `https://www.google.com/maps/embed/v1/place?key=${firebaseConfig.apiKey}&q=${lat},${lng}&zoom=18&maptype=satellite`;
     }
 
     window.logout = () => { localStorage.removeItem("auth"); window.location.href="login.html"; };
