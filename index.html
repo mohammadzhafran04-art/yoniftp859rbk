@@ -2,203 +2,168 @@
 <html lang="id">
 <head>  
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>UNIT MONITORING - TACTICAL HD</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-green: #00ff00;
-            --dark-bg: #010801;
-            --glass-bg: rgba(10, 25, 10, 0.85);
+            --dark-bg: #000800;
+            --glass-bg: rgba(5, 15, 5, 0.9);
+            --danger: #ff0033;
         }
 
         body { 
-            margin: 0; 
-            font-family: 'Orbitron', sans-serif; 
-            background: var(--dark-bg); 
-            color: var(--neon-green); 
-            overflow: hidden; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
+            margin: 0; font-family: 'Orbitron', sans-serif; 
+            background: var(--dark-bg); color: var(--neon-green); 
+            overflow: hidden; height: 100vh; display: flex; flex-direction: column; 
+            user-select: none; -webkit-tap-highlight-color: transparent;
         }
 
         /* Scanline CRT Effect */
         body::before { 
-            content: " "; 
-            display: block; 
-            position: absolute; 
-            top: 0; left: 0; bottom: 0; right: 0; 
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04)); 
-            z-index: 10; 
-            background-size: 100% 3px, 3px 100%; 
-            pointer-events: none; 
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; 
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); 
+            z-index: 100; background-size: 100% 3px, 3px 100%; pointer-events: none; 
         }
 
-        /* Animated Radar Pulse Background */
-        .radar-background {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100vmax; height: 100vmax;
-            background: radial-gradient(circle, rgba(0,255,0,0.05) 0%, transparent 70%);
-            z-index: 1;
+        /* Animated Radar Pulse */
+        .radar-circles {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100vmax; height: 100vmax; z-index: 1; pointer-events: none;
+        }
+        .circle {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            border: 1px solid rgba(0, 255, 0, 0.1); border-radius: 50%;
+            animation: radar-sweep 4s infinite linear;
+        }
+
+        @keyframes radar-sweep {
+            0% { width: 0; height: 0; opacity: 1; }
+            100% { width: 100%; height: 100%; opacity: 0; }
         }
 
         .header { 
-            background: #051a05; 
-            padding: 15px; 
-            text-align: center; 
-            border-bottom: 2px solid var(--neon-green); 
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4); 
-            font-weight: bold; 
-            letter-spacing: 4px; 
-            z-index: 5;
-            text-transform: uppercase;
+            background: #021202; padding: 15px; text-align: center; 
+            border-bottom: 2px solid var(--neon-green); font-weight: bold; 
+            letter-spacing: 4px; z-index: 50; text-transform: uppercase;
+            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
         }
 
-        .container { flex: 1; display: flex; justify-content: center; align-items: center; z-index: 5; }
+        .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 20px; }
+
+        /* Compass Visualizer */
+        #compass {
+            width: 120px; height: 120px; border: 2px solid var(--neon-green);
+            border-radius: 50%; margin-bottom: 20px; position: relative;
+            transition: transform 0.1s ease-out; box-shadow: 0 0 20px rgba(0,255,0,0.2);
+        }
+        #compass::after {
+            content: "N"; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            font-size: 10px; font-weight: bold;
+        }
+        .needle {
+            position: absolute; top: 50%; left: 50%; width: 2px; height: 50px;
+            background: var(--danger); transform-origin: bottom; transform: translate(-50%, -100%);
+        }
 
         .card { 
-            background: var(--glass-bg); 
-            padding: 30px; 
-            width: 340px; 
-            border: 1px solid var(--neon-green); 
-            border-radius: 12px; 
-            box-shadow: 0 0 40px rgba(0, 255, 0, 0.15), inset 0 0 15px rgba(0, 255, 0, 0.1); 
-            backdrop-filter: blur(8px);
-            position: relative;
-        }
-
-        /* Transmission Pulse Animation */
-        .card.active::after {
-            content: "";
-            position: absolute;
-            top: -5px; left: -5px; right: -5px; bottom: -5px;
-            border: 2px solid var(--neon-green);
-            border-radius: 14px;
-            animation: broadcast 2s infinite;
-            opacity: 0;
-        }
-
-        @keyframes broadcast {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.15); opacity: 0; }
-        }
-
-        h2 { 
-            text-align: center; 
-            font-size: 12px; 
-            margin-bottom: 25px; 
-            letter-spacing: 2px;
-            color: #fff;
-            opacity: 0.8;
+            background: var(--glass-bg); padding: 25px; width: 100%; max-width: 340px; 
+            border: 1px solid var(--neon-green); border-radius: 4px;
+            box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.1); backdrop-filter: blur(10px);
         }
 
         input { 
-            width: 100%; 
-            padding: 14px; 
-            background: rgba(0, 0, 0, 0.8); 
-            border: 1px solid var(--neon-green); 
-            color: var(--neon-green); 
-            font-family: 'JetBrains Mono', monospace; 
-            margin-bottom: 15px; 
-            box-sizing: border-box; 
-            outline: none;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: bold;
+            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.9); 
+            border: 1px solid var(--neon-green); color: var(--neon-green); 
+            font-family: 'JetBrains Mono'; margin-bottom: 15px; 
+            box-sizing: border-box; outline: none; text-align: center; border-radius: 0;
         }
 
         button { 
-            width: 100%; 
-            padding: 16px; 
-            background: var(--neon-green); 
-            color: #000; 
-            border: none; 
-            font-weight: 900; 
-            cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            font-family: 'Orbitron'; 
-            border-radius: 4px;
-            text-transform: uppercase;
-            box-shadow: 0 4px 0 #008800;
+            width: 100%; padding: 18px; background: var(--neon-green); color: #000; 
+            border: none; font-weight: 900; cursor: pointer; 
+            font-family: 'Orbitron'; text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
         }
 
-        button:active { transform: translateY(3px); box-shadow: 0 1px 0 #008800; }
+        button:disabled { background: #004400; color: var(--neon-green); box-shadow: none; cursor: default; }
 
         .telemetry { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 12px; 
-            margin-top: 25px; 
-            border-top: 1px solid rgba(0,255,0,0.2); 
-            padding-top: 20px; 
-            font-family: 'JetBrains Mono', monospace;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; 
+            margin-top: 20px; font-family: 'JetBrains Mono';
         }
 
         .tel-box {
-            background: rgba(0,0,0,0.3);
-            padding: 8px;
-            border-radius: 4px;
-            border-left: 2px solid var(--neon-green);
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 2px;
+            border: 1px solid rgba(0, 255, 0, 0.2);
         }
 
         .tel-label { font-size: 8px; color: #888; display: block; margin-bottom: 4px; }
-        .tel-val { font-size: 13px; font-weight: bold; color: #fff; }
+        .tel-val { font-size: 14px; font-weight: bold; color: #fff; }
 
-        #msg { text-align: center; font-size: 10px; margin-top: 15px; letter-spacing: 1px; height: 15px; }
-        .status-on { color: var(--neon-green); animation: blink 0.8s infinite; text-shadow: 0 0 8px var(--neon-green); }
-        
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        #status-bar {
+            width: 100%; max-width: 340px; display: flex; justify-content: space-between;
+            font-size: 10px; margin-top: 15px; font-family: 'JetBrains Mono';
+        }
+
+        .active-glow { animation: glow 1.5s infinite; }
+        @keyframes glow { 0%, 100% { text-shadow: 0 0 5px var(--neon-green); } 50% { text-shadow: 0 0 15px var(--neon-green); } }
 
         .footer-info {
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
-            text-align: center;
-            font-size: 8px;
-            color: rgba(0,255,0,0.3);
-            letter-spacing: 2px;
+            background: #021202; width: 100%; padding: 10px; text-align: center;
+            font-size: 9px; color: rgba(0,255,0,0.5); border-top: 1px solid var(--neon-green);
         }
     </style>
 </head>
 <body>
 
-<div class="radar-background"></div>
+<div class="radar-circles">
+    <div class="circle" style="animation-delay: 0s"></div>
+    <div class="circle" style="animation-delay: 1s"></div>
+    <div class="circle" style="animation-delay: 2s"></div>
+</div>
 
-<div class="header">Tactical Uplink // Yonif 859</div>
+<div class="header">Yonif 859 // Tactical Uplink</div>
 
 <div class="container">
+    <div id="compass">
+        <div class="needle"></div>
+    </div>
+
     <div class="card" id="mainCard">
-        <h2>[ DEVICE IDENTIFICATION ]</h2>
-        <input type="text" id="nama" placeholder="CALLSIGN / UNIT NAME" spellcheck="false">
-        <button id="btnTrack">Initiate Transmission</button>
-        <div id="msg">SYSTEM STANDBY</div>
+        <input type="text" id="nama" placeholder="CALLSIGN / UNIT NAME" maxlength="15">
+        <button id="btnTrack">Initiate Link</button>
         
         <div class="telemetry">
             <div class="tel-box">
                 <span class="tel-label">LATITUDE</span>
-                <span class="tel-val" id="lat">00.00000</span>
+                <span class="tel-val" id="lat">0.00000</span>
             </div>
             <div class="tel-box">
                 <span class="tel-label">LONGITUDE</span>
-                <span class="tel-val" id="lon">00.00000</span>
+                <span class="tel-val" id="lon">0.00000</span>
             </div>
             <div class="tel-box">
-                <span class="tel-label">VELOCITY</span>
+                <span class="tel-label">SPEED</span>
                 <span class="tel-val"><span id="spd">0</span> KM/H</span>
             </div>
             <div class="tel-box">
-                <span class="tel-label">PRECISION</span>
+                <span class="tel-label">ACCURACY</span>
                 <span class="tel-val"><span id="acc">0</span> M</span>
             </div>
         </div>
     </div>
+
+    <div id="status-bar">
+        <span id="pwr">BATT: --%</span>
+        <span id="msg" class="active-glow">SYSTEM STANDBY</span>
+        <span id="time">00:00:00</span>
+    </div>
 </div>
 
-<div class="footer-info">SECURE CHANNEL ACTIVE // ENCRYPTION AES-256</div>
+<div class="footer-info">SECURE CHANNEL // AES-256 BIT ENCRYPTION // NO LOG RETAIN</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -218,20 +183,40 @@
     const db = getDatabase(app);
 
     const btn = document.getElementById("btnTrack");
-    const mainCard = document.getElementById("mainCard");
+    const compass = document.getElementById("compass");
+
+    // Clock
+    setInterval(() => {
+        document.getElementById("time").innerText = new Date().toLocaleTimeString('en-GB');
+    }, 1000);
+
+    // Battery
+    if (navigator.getBattery) {
+        navigator.getBattery().then(bat => {
+            const updateBat = () => document.getElementById("pwr").innerText = `BATT: ${Math.round(bat.level * 100)}%`;
+            updateBat();
+            bat.onlevelchange = updateBat;
+        });
+    }
+
+    // Compass / Device Orientation
+    window.addEventListener("deviceorientation", (e) => {
+        if (e.webkitCompassHeading) { // iOS
+            compass.style.transform = `rotate(${-e.webkitCompassHeading}deg)`;
+        } else { // Android
+            compass.style.transform = `rotate(${-e.alpha}deg)`;
+        }
+    });
 
     btn.onclick = async function() {
-        const nama = document.getElementById("nama").value.toUpperCase();
-        if(!nama) return alert("CRITICAL: Unit callsign required.");
+        const nama = document.getElementById("nama").value.trim().toUpperCase();
+        if(!nama) return;
 
         btn.disabled = true;
-        btn.innerText = "LINK ESTABLISHED";
-        btn.style.background = "#004400";
-        btn.style.color = "#00ff00";
-        mainCard.classList.add("active");
+        btn.innerText = "UPLINK ACTIVE";
+        document.getElementById("msg").innerText = "TRANSMITTING...";
         
-        document.getElementById("msg").innerHTML = '<span class="status-on">●</span> LIVE BROADCASTING';
-        
+        // WakeLock
         if ("wakeLock" in navigator) {
             try { await navigator.wakeLock.request("screen"); } catch (err) {}
         }
@@ -246,23 +231,14 @@
                 status: "ONLINE"
             };
 
-            set(ref(db, "live/" + nama), updates)
-                .catch(e => { document.getElementById("msg").innerText = "DATALINK FAILURE"; });
-
+            set(ref(db, "live/" + nama), updates);
             onDisconnect(ref(db, "live/" + nama + "/status")).set("OFFLINE");
 
-            // UI Smooth Update
             document.getElementById("lat").innerText = updates.latitude.toFixed(5);
             document.getElementById("lon").innerText = updates.longitude.toFixed(5);
             document.getElementById("spd").innerText = updates.speed;
             document.getElementById("acc").innerText = updates.accuracy;
-        }, (err) => {
-            document.getElementById("msg").innerText = "GPS SIGNAL LOST";
-        }, { 
-            enableHighAccuracy: true,
-            maximumAge: 0,
-            timeout: 10000 
-        });
+        }, null, { enableHighAccuracy: true });
     };
 </script>
 </body>
