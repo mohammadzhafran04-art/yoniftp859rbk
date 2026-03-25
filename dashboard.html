@@ -67,7 +67,6 @@
             box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
         }
 
-        /* --- FIXED VISUAL FEED --- */
         #visualFeed {
             width: 100%; height: 200px; border: 1px solid var(--neon-blue);
             margin-top: 15px; position: relative; background: #000;
@@ -75,8 +74,7 @@
         }
         #visualFrame { 
             width: 100%; height: 100%; border: none;
-            /* Filter Matrix/Tactical */
-            filter: brightness(0.7) contrast(1.2) grayscale(1) sepia(1) hue-rotate(80deg) saturate(5);
+            filter: brightness(0.8) contrast(1.2) grayscale(1) sepia(1) hue-rotate(85deg) saturate(5);
         }
         .hud-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -233,13 +231,12 @@
 
         const visualFeed = document.getElementById("visualFeed");
         const visualFrame = document.getElementById("visualFrame");
-        
         visualFeed.style.display = "block";
         
-        // Menggunakan Google Maps Embed URL untuk Street View
-        // Cara ini lebih aman dari error API Key karena berjalan sebagai iframe
         const lat = unit.latitude;
         const lng = unit.longitude;
+
+        // FIX: Menggunakan URL Embed resmi untuk Street View yang lebih stabil
         visualFrame.src = `https://www.google.com/maps/embed/v1/streetview?key=${firebaseConfig.apiKey}&location=${lat},${lng}&heading=210&pitch=10&fov=90`;
     }
 
