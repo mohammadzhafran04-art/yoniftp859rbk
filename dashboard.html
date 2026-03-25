@@ -2,216 +2,48 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL - COMMAND CENTER v5.0</title>
+    <title>HQ - COMMAND CENTER v7.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-        :root {
-            --neon-green: #00ff00;
-            --neon-blue: #00f2ff;
-            --dark-bg: #030803;
-            --panel-bg: rgba(5, 15, 5, 0.85);
-            --danger: #ff3333;
-            --glass: rgba(0, 255, 0, 0.05);
-        }
-
-        body { 
-            margin: 0; 
-            font-family: 'Orbitron', sans-serif; 
-            background: var(--dark-bg); 
-            color: var(--neon-green); 
-            overflow: hidden; 
-            background-image: radial-gradient(circle at center, #0a1a0a 0%, #000 100%);
-        }
-        
-        /* CRT Scanline Effect */
-        body::before {
-            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            z-index: 10000; background-size: 100% 3px, 3px 100%; pointer-events: none;
-        }
-
-        .header {
-            background: rgba(2, 10, 2, 0.9);
-            padding: 12px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--neon-green);
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
-            position: relative;
-            z-index: 1001;
-        }
-
-        .container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 62px); gap: 2px; background: rgba(0, 255, 0, 0.1); }
-        
-        .panel { 
-            background: var(--panel-bg); 
-            padding: 20px; 
-            overflow-y: auto; 
-            backdrop-filter: blur(10px);
-            display: flex;
-            flex-direction: column;
-        }
-
-        #map { background: #000; height: 100%; filter: grayscale(0.5) contrast(1.2) brightness(0.8) sepia(0.2) hue-rotate(80deg); }
-
-        /* Stats Stylized */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        .stat-card {
-            background: rgba(0,0,0,0.6); 
-            border: 1px solid var(--neon-green); 
-            padding: 15px;
-            position: relative;
-            overflow: hidden;
-            transition: 0.3s;
-        }
-        .stat-card::before {
-            content: ""; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--neon-green);
-        }
-
-        /* Unit List Stylized */
-        .unit-item {
-            padding: 15px; 
-            border: 1px solid rgba(0, 255, 0, 0.2); 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            background: rgba(0,40,0,0.2); 
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .unit-item:hover { 
-            background: rgba(0, 255, 0, 0.1); 
-            transform: translateX(5px);
-            border-color: var(--neon-blue);
-        }
-        .unit-item.selected { 
-            border-left: 5px solid var(--neon-blue); 
-            background: rgba(0, 242, 255, 0.1);
-            box-shadow: -10px 0 20px rgba(0, 242, 255, 0.1);
-        }
-
-        .marker-pulse {
-            width: 14px; height: 14px; background: var(--neon-green); 
-            border: 2px solid #fff; border-radius: 50%;
-            box-shadow: 0 0 15px var(--neon-green);
-            animation: pulse-ring 2s infinite;
-        }
-        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
-
-        #detailBox {
-            font-family: 'JetBrains Mono', monospace; 
-            font-size: 12px; 
-            color: #d1ffd1; 
-            background: rgba(0,20,0,0.5); 
-            padding: 15px; 
-            border: 1px solid var(--neon-blue);
-            box-shadow: inset 0 0 15px rgba(0, 242, 255, 0.1);
-            margin-bottom: 15px;
-        }
-
-        #visualFeed {
-            width: 100%; height: 220px; border: 1px solid var(--neon-blue);
-            position: relative; background: #000; overflow: hidden;
-            border-radius: 4px;
-        }
-        #visualFrame { 
-            width: 100%; height: 100%; border: none;
-            filter: brightness(1.2) contrast(1.3) grayscale(0.3);
-        }
-        
-        /* Tactical Overlay for Visual Feed */
-        .hud-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            background: 
-                linear-gradient(90deg, var(--neon-blue) 1px, transparent 1px) 0 0 / 20px 20px,
-                linear-gradient(0deg, var(--neon-blue) 1px, transparent 1px) 0 0 / 20px 20px;
-            opacity: 0.1;
-        }
-
-        .search-box {
-            width: 100%; padding: 12px; background: rgba(0,30,0,0.6); 
-            border: 1px solid var(--neon-green); color: var(--neon-green);
-            font-family: 'JetBrains Mono'; outline: none; margin-bottom: 20px;
-            box-shadow: inset 0 0 10px rgba(0,255,0,0.1);
-        }
-
-        #logs {
-            background: rgba(0,0,0,0.4);
-            padding: 10px;
-            font-family: 'JetBrains Mono';
-            font-size: 10px;
-            height: 150px;
-            overflow-y: auto;
-            color: #888;
-            border-top: 1px solid rgba(0,255,0,0.2);
-        }
-
-        .log-entry { margin-bottom: 4px; border-left: 2px solid #444; padding-left: 5px; }
-        .log-entry.active { border-left-color: var(--neon-green); color: var(--neon-green); }
-
-        .logout-btn {
-            background: transparent; color: var(--danger); border: 1px solid var(--danger);
-            padding: 8px 15px; cursor: pointer; font-family: 'Orbitron'; font-size: 11px;
-            transition: 0.3s; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .logout-btn:hover { background: var(--danger); color: #fff; box-shadow: 0 0 15px var(--danger); }
-
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: var(--neon-green); }
+        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #030803; --panel-bg: rgba(5, 15, 5, 0.9); --danger: #ff3333; }
+        body { margin: 0; font-family: 'Orbitron', sans-serif; background: var(--dark-bg); color: var(--neon-green); overflow: hidden; height: 100vh; }
+        .header { background: rgba(0,0,0,0.9); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--neon-green); box-shadow: 0 0 20px rgba(0,255,0,0.2); }
+        .main-container { display: grid; grid-template-columns: 320px 1fr 320px; height: calc(100vh - 65px); gap: 5px; background: #111; }
+        .panel { background: var(--panel-bg); padding: 15px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.1); }
+        #map { background: #000; filter: grayscale(0.6) brightness(0.8) contrast(1.2); }
+        .unit-card { padding: 12px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 8px; cursor: pointer; transition: 0.2s; background: rgba(0,20,0,0.3); }
+        .unit-card:hover { border-color: var(--neon-blue); background: rgba(0,242,255,0.05); }
+        .unit-card.sos { border-color: var(--danger); animation: pulseDanger 1s infinite; }
+        @keyframes pulseDanger { 0% { box-shadow: inset 0 0 5px var(--danger); } 50% { box-shadow: inset 0 0 15px var(--danger); } 100% { box-shadow: inset 0 0 5px var(--danger); } }
+        #detail-box { font-family: 'JetBrains Mono'; font-size: 12px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.5); min-height: 100px; }
+        .visual-feed { width: 100%; height: 200px; margin-top: 15px; border: 1px solid #333; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; filter: saturate(1.5) contrast(1.2); }
+        .tag { font-size: 9px; color: var(--neon-blue); letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div style="letter-spacing: 4px; font-weight: bold;">🛰 <span style="color: var(--neon-blue);">GLOBAL</span> COMMAND <span style="color: #fff; opacity: 0.5; font-size: 10px;">OS_v5.0.4</span></div>
-    <div id="systemClock" style="font-family: 'JetBrains Mono'; font-size: 14px;">00:00:00</div>
-    <button class="logout-btn" onclick="logout()">Terminate Session</button>
+    <div style="font-weight: bold; letter-spacing: 2px;">🛰 COMMAND CENTER <span style="color: var(--neon-blue);">GLOBAL_V7</span></div>
+    <div id="clock" style="font-family: 'JetBrains Mono';">00:00:00</div>
+    <div style="font-size: 10px; color: #555;">ENCRYPTED_UPLINK_STABLE</div>
 </div>
 
-<div class="container">
+<div class="main-container">
     <div class="panel">
-        <div class="stat-grid">
-            <div class="stat-card">
-                <span class="tag">ASSETS_TOTAL</span>
-                <span id="totalUnit" class="val-large" style="text-shadow: 0 0 10px var(--neon-green);">0</span>
-            </div>
-            <div class="stat-card" style="border-color: var(--neon-blue);">
-                <span class="tag" style="color: var(--neon-blue);">ACTIVE_UPLINK</span>
-                <span id="onlineUnit" class="val-large" style="color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue);">0</span>
-            </div>
-        </div>
-        
-        <input type="text" id="search" class="search-box" placeholder="> FILTER_BY_CALLSIGN...">
-        <div id="listUnit" style="flex-grow: 1;"></div>
+        <span class="tag">ASSETS_ACTIVE</span>
+        <div id="unit-list" style="margin-top: 10px;"></div>
     </div>
 
     <div id="map"></div>
 
-    <div class="panel panel-right">
-        <h4 style="font-size: 11px; margin: 0 0 10px 0; letter-spacing: 2px; color: var(--neon-blue);">> DATA_STREAM_ANALYSIS</h4>
-        <div id="detailBox">AWAITING_UPLINK...</div>
-        
-        <div id="visualFeed" style="display: none;">
-            <div style="position: absolute; top: 10px; left: 10px; z-index: 10; font-size: 9px; color: var(--neon-blue); background: rgba(0,0,0,0.6); padding: 2px 5px; font-family: 'JetBrains Mono';">
-                LIVE_FEED: RECON_SAT_04
-            </div>
-            <div class="hud-overlay"></div>
-            <iframe id="visualFrame" src=""></iframe>
-        </div>
-
-        <div style="margin-top: 20px; flex-grow: 1; display: flex; flex-direction: column;">
-            <span class="tag" style="margin-bottom: 10px;">ENCRYPTED_LOGS</span>
-            <div id="logs">
-                <div class="log-entry">> Initializing secure tunnel...</div>
-                <div class="log-entry">> Connection established via AES-256.</div>
-                <div class="log-entry">> GPS constellations synced.</div>
-            </div>
+    <div class="panel">
+        <span class="tag">INTEL_STREAM</span>
+        <div id="detail-box" style="margin-top: 10px;">AWAITING_SELECTION...</div>
+        <div class="visual-feed" id="v-feed" style="display:none;">
+            <iframe id="sat-view"></iframe>
         </div>
     </div>
 </div>
@@ -220,7 +52,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Configuration tetap sama
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
         authDomain: "database-baru-rbk.firebaseapp.com",
@@ -233,107 +64,70 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-
-    // Map Styling
-    const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-    const labelLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png');
+    const map = L.map('map', { center: [-2, 118], zoom: 5, zoomControl: false });
     
-    const map = L.map("map", { center: [-2, 118], zoom: 5, zoomControl: false, layers: [satLayer, labelLayer] });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
     let markers = {};
-    let selectedUnit = null;
+    let selectedId = null;
 
-    // Clock Function
-    setInterval(() => {
-        document.getElementById("systemClock").innerText = new Date().toLocaleTimeString('en-GB');
-    }, 1000);
-
-    function addLog(msg, active = false) {
-        const logBox = document.getElementById("logs");
-        const entry = document.createElement("div");
-        entry.className = `log-entry ${active ? 'active' : ''}`;
-        entry.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-        logBox.prepend(entry);
-        if (logBox.children.length > 20) logBox.lastElementChild.remove();
-    }
+    setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
 
     onValue(ref(db, "live"), snap => {
-        const data = snap.val();
-        if(!data) return;
-
-        const list = document.getElementById("listUnit");
-        const searchTerm = document.getElementById("search").value.toUpperCase();
+        const data = snap.val() || {};
+        const list = document.getElementById("unit-list");
         list.innerHTML = "";
-        let count = 0, online = 0;
 
-        Object.keys(data).forEach(nama => {
-            const unit = data[nama];
-            const isOnline = (Date.now() - unit.waktu) < 30000;
-            count++; if(isOnline) online++;
+        Object.keys(data).forEach(id => {
+            const unit = data[id];
+            const isOnline = (Date.now() - unit.ts) < 20000;
+            const isSOS = unit.status === "EMERGENCY";
 
-            if(nama.toUpperCase().includes(searchTerm)) {
-                // Map Marker Logic
-                if(!markers[nama]) {
-                    const icon = L.divIcon({ className: '', html: `<div class="marker-pulse" id="m-${nama}"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] });
-                    markers[nama] = L.marker([unit.latitude, unit.longitude], {icon: icon}).addTo(map);
-                    addLog(`NEW_ASSET_DETECTED: ${nama}`, true);
-                } else {
-                    markers[nama].setLatLng([unit.latitude, unit.longitude]);
-                }
-
-                // List Item UI
-                const item = document.createElement("div");
-                item.className = `unit-item ${selectedUnit === nama ? 'selected' : ''}`;
-                item.innerHTML = `
-                    <div>
-                        <div style="font-size: 12px; font-weight: bold; color: ${selectedUnit === nama ? 'var(--neon-blue)' : 'inherit'}">${nama}</div>
-                        <div style="font-size: 9px; opacity: 0.6; font-family: 'JetBrains Mono';">${unit.latitude.toFixed(4)}, ${unit.longitude.toFixed(4)}</div>
-                    </div>
-                    <div style="width: 8px; height: 8px; border-radius: 50%; background: ${isOnline ? 'var(--neon-green)' : 'var(--danger)'}; box-shadow: 0 0 10px ${isOnline ? 'var(--neon-green)' : 'var(--danger)'};"></div>
-                `;
-                
-                item.onclick = () => {
-                    selectedUnit = nama;
-                    map.flyTo([unit.latitude, unit.longitude], 17, { duration: 1.5 });
-                    updateDetail(nama, unit, isOnline);
-                    addLog(`SYNCING_WITH_ASSET: ${nama}`);
-                };
-                list.appendChild(item);
-
-                if(selectedUnit === nama) updateDetail(nama, unit, isOnline);
+            // Map Logic
+            if(!markers[id]) {
+                markers[id] = L.circleMarker([unit.latitude, unit.longitude], {
+                    radius: 8, color: isSOS ? '#ff0000' : '#00ff00', fillOpacity: 0.8
+                }).addTo(map);
+            } else {
+                markers[id].setLatLng([unit.latitude, unit.longitude]);
+                markers[id].setStyle({ color: isSOS ? '#ff0000' : '#00ff00' });
             }
+
+            // List UI
+            const card = document.createElement("div");
+            card.className = `unit-card ${isSOS ? 'sos' : ''}`;
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between;">
+                    <strong>${id}</strong>
+                    <span style="color:${isOnline?'#00ff00':'#ff3333'}">●</span>
+                </div>
+                <div style="font-size:10px; opacity:0.6; font-family:'JetBrains Mono'">${unit.speed} KMH | ACC: ${unit.accuracy}M</div>
+            `;
+            card.onclick = () => {
+                selectedId = id;
+                map.flyTo([unit.latitude, unit.longitude], 17);
+                showDetail(id, unit);
+            };
+            list.appendChild(card);
+
+            if(selectedId === id) showDetail(id, unit);
         });
-        document.getElementById("totalUnit").innerText = count.toString().padStart(2, '0');
-        document.getElementById("onlineUnit").innerText = online.toString().padStart(2, '0');
     });
 
-    function updateDetail(nama, unit, isOnline) {
-        document.getElementById("detailBox").innerHTML = `
-            <div style="border-bottom: 1px solid rgba(0,242,255,0.3); padding-bottom: 5px; margin-bottom: 10px; color: var(--neon-blue); font-weight: bold;">
-                IDENT // ${nama}
-            </div>
-            <div style="display: grid; grid-template-columns: 80px 1fr; gap: 5px;">
-                <span style="opacity:0.5">STATUS</span><span style="color:${isOnline?'#00ff00':'#ff3333'}">${isOnline?'ACTIVE_LINK':'LINK_LOST'}</span>
-                <span style="opacity:0.5">SPEED</span><span>${unit.speed} KM/H</span>
-                <span style="opacity:0.5">ALT</span><span>N/A (GROUND)</span>
-                <span style="opacity:0.5">ACCUR</span><span>±${unit.accuracy}m</span>
-            </div>
+    function showDetail(id, unit) {
+        document.getElementById("detail-box").innerHTML = `
+            <div style="color:var(--neon-blue); border-bottom:1px solid #222; margin-bottom:10px;">ID: ${id}</div>
+            STATUS: ${unit.status}<br>
+            LAT: ${unit.latitude.toFixed(5)}<br>
+            LON: ${unit.longitude.toFixed(5)}<br>
+            SPEED: ${unit.speed} KM/H<br>
+            UPDATE: ${new Date(unit.ts).toLocaleTimeString()}
         `;
-
-        const visualFeed = document.getElementById("visualFeed");
-        const visualFrame = document.getElementById("visualFrame");
-        visualFeed.style.display = "block";
-        
-        // Iframe Bypass untuk Visual Satelit
-        visualFrame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&hl=id&z=19&t=k&output=embed`;
+        const feed = document.getElementById("v-feed");
+        const frame = document.getElementById("sat-view");
+        feed.style.display = "block";
+        frame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&ie=UTF8&iwloc=&output=embed`;
     }
-
-    window.logout = () => { 
-        if(confirm("TERMINATE ALL SECURE UPLINKS?")) {
-            localStorage.removeItem("auth"); 
-            window.location.href="login.html"; 
-        }
-    };
 </script>
 </body>
 </html>
