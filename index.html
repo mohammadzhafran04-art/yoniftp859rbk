@@ -29,7 +29,6 @@
             z-index: 1000; background-size: 100% 3px, 3px 100%; pointer-events: none; 
         }
 
-        /* Loading Overlay */
         #boot-screen {
             position: fixed; inset: 0; background: #000; z-index: 9999;
             display: none; flex-direction: column; justify-content: center; align-items: center;
@@ -45,14 +44,10 @@
 
         .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 20px; position: relative; }
 
-        /* Tactical Signal Strength Display */
-        .signal-meter {
-            display: flex; gap: 3px; align-items: flex-end; height: 15px; margin-bottom: 10px;
-        }
-        .sig-bar { width: 4px; background: rgba(0,255,0,0.2); border-radius: 1px; }
+        .signal-meter { display: flex; gap: 3px; align-items: flex-end; height: 15px; margin-bottom: 10px; }
+        .sig-bar { width: 4px; background: rgba(0,255,0,0.1); border-radius: 1px; transition: 0.3s; }
         .sig-bar.active { background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green); }
 
-        /* Compass Visualizer */
         #compass {
             width: 100px; height: 100px; border: 1px solid var(--neon-green);
             border-radius: 50%; margin-bottom: 15px; position: relative;
@@ -64,12 +59,12 @@
         .card { 
             background: var(--glass-bg); padding: 20px; width: 100%; max-width: 340px; 
             border: 1px solid var(--neon-green); position: relative; overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,255,0,0.05);
         }
 
-        /* Scanning Line Animation */
         .scan-line {
-            position: absolute; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.3);
-            top: 0; left: 0; animation: scan 3s infinite linear; pointer-events: none;
+            position: absolute; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.2);
+            top: 0; left: 0; animation: scan 4s infinite linear; pointer-events: none;
         }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
 
@@ -77,31 +72,30 @@
             width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.8); 
             border: 1px solid var(--neon-green); color: var(--neon-green); 
             font-family: 'JetBrains Mono'; margin-bottom: 15px; 
-            box-sizing: border-box; outline: none; text-align: center;
+            box-sizing: border-box; outline: none; text-align: center; border-radius: 2px;
         }
 
         .btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-        
         button { 
             width: 100%; padding: 16px; border: none; font-weight: bold; cursor: pointer; 
-            font-family: 'Orbitron'; text-transform: uppercase; transition: 0.3s;
+            font-family: 'Orbitron'; text-transform: uppercase; transition: 0.3s; border-radius: 2px;
         }
 
         #btnTrack { background: var(--neon-green); color: #000; box-shadow: 0 0 15px rgba(0, 255, 0, 0.4); }
-        #btnTrack:disabled { background: #004400; color: var(--neon-green); box-shadow: none; opacity: 0.6; }
+        #btnTrack:disabled { background: #003300; color: #008800; cursor: default; box-shadow: none; }
 
         .btn-terminate { 
             background: transparent; color: var(--danger); border: 1px solid var(--danger); 
-            font-size: 10px; display: none; margin-top: 10px;
+            font-size: 10px; display: none; margin-top: 10px; letter-spacing: 1px;
         }
-        .btn-terminate:hover { background: var(--danger); color: #fff; }
+        .btn-terminate:active { background: var(--danger); color: #fff; }
 
         .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; font-family: 'JetBrains Mono'; }
         .tel-box { background: rgba(0,0,0,0.6); padding: 10px; border: 1px solid rgba(0, 255, 0, 0.1); }
-        .tel-label { font-size: 7px; color: #666; display: block; margin-bottom: 3px; letter-spacing: 1px; }
+        .tel-label { font-size: 7px; color: #666; display: block; margin-bottom: 3px; }
         .tel-val { font-size: 13px; font-weight: bold; color: #fff; }
 
-        #status-bar { width: 100%; max-width: 340px; display: flex; justify-content: space-between; font-size: 9px; margin-top: 12px; font-family: 'JetBrains Mono'; opacity: 0.8; }
+        #status-bar { width: 100%; max-width: 340px; display: flex; justify-content: space-between; font-size: 9px; margin-top: 12px; font-family: 'JetBrains Mono'; }
         .active-glow { animation: glow 2s infinite; color: var(--warning); }
         @keyframes glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
@@ -136,7 +130,7 @@
         
         <div class="btn-group">
             <button id="btnTrack">Initiate Link</button>
-            <button id="btnTerminate" class="btn-terminate">Terminate Uplink</button>
+            <button id="btnTerminate" class="btn-terminate">Terminate & Scrub Data</button>
         </div>
         
         <div class="telemetry">
@@ -154,7 +148,7 @@
     </div>
 </div>
 
-<div class="footer-info">SECURE CHANNEL // AES-256 BIT ENCRYPTION // YONIF 859 HQ</div>
+<div class="footer-info">SECURE CHANNEL // AES-256 BIT // YONIF 859 HQ</div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -196,24 +190,25 @@
 
     btn.onclick = async function() {
         const nama = document.getElementById("nama").value.trim().toUpperCase();
-        if(!nama) return;
+        if(!nama) return alert("UNIT CALLSIGN REQUIRED");
 
-        // Boot Sequence Simulation
+        // Start Booting
+        if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
         bootScreen.style.display = 'flex';
         const steps = ["> SECURING CHANNEL...", "> BYPASSING FIREWALL...", "> CALIBRATING GPS...", "> LINK ESTABLISHED!"];
         for(let i=0; i<=100; i+=5) {
             document.getElementById("boot-progress").style.width = i + '%';
             if(i % 25 === 0) document.getElementById("boot-text").innerText = steps[i/25];
-            await new Promise(r => setTimeout(r, 60));
+            await new Promise(r => setTimeout(r, 40));
         }
         bootScreen.style.display = 'none';
 
-        // UI Transformation
+        // UI Prep
         btn.disabled = true;
         btn.innerText = "UPLINK ACTIVE";
         btnTerm.style.display = 'block';
-        document.getElementById("msg").innerText = "BROADCASTING";
-        document.querySelectorAll('.sig-bar').forEach((b, i) => setTimeout(() => b.classList.add('active'), i * 100));
+        document.getElementById("msg").innerText = "TRANSMITTING";
+        document.querySelectorAll('.sig-bar').forEach((b, i) => setTimeout(() => b.classList.add('active'), i * 150));
 
         if ("wakeLock" in navigator) {
             try { await navigator.wakeLock.request("screen"); } catch (err) {}
@@ -229,27 +224,40 @@
                 status: "ONLINE"
             };
 
+            // Update Firebase
             set(ref(db, "live/" + nama), updates);
-            onDisconnect(ref(db, "live/" + nama + "/status")).set("OFFLINE");
+            
+            // Auto-remove on crash/disconnect
+            onDisconnect(ref(db, "live/" + nama)).remove();
 
+            // Local UI Update
             document.getElementById("lat").innerText = updates.latitude.toFixed(5);
             document.getElementById("lon").innerText = updates.longitude.toFixed(5);
             document.getElementById("spd").innerText = updates.speed;
             document.getElementById("acc").innerText = updates.accuracy;
-        }, null, { enableHighAccuracy: true });
+        }, (err) => {
+            document.getElementById("msg").innerText = "SIGNAL LOST";
+        }, { enableHighAccuracy: true });
     };
 
-    btnTerm.onclick = function() {
-        if(confirm("CONFIRM TERMINATION: BREAK UPLINK?")) {
+    btnTerm.onclick = async function() {
+        if(confirm("DANGER: SCRUB DATA & DISCONNECT?")) {
             const nama = document.getElementById("nama").value.trim().toUpperCase();
+            
+            if (navigator.vibrate) navigator.vibrate(200);
+            
+            // 1. Stop GPS Watch
             if(watchID) navigator.geolocation.clearWatch(watchID);
             
-            // Set offline status or remove
-            set(ref(db, "live/" + nama + "/status"), "OFFLINE");
+            // 2. Remove from Firebase Dashboard (Permanent Delete)
+            try {
+                await remove(ref(db, "live/" + nama));
+                console.log("Unit data scrubbed from HQ.");
+            } catch (e) { console.error("Scrub failed", e); }
             
-            // Reload page for clean state
-            document.body.style.filter = "invert(1) hue-rotate(90deg)"; // Glitch effect
-            setTimeout(() => window.location.reload(), 500);
+            // 3. Glitch Effect & Reset
+            document.body.style.filter = "invert(1) contrast(2) hue-rotate(180deg)";
+            setTimeout(() => window.location.reload(), 400);
         }
     };
 </script>
