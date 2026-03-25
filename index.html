@@ -6,170 +6,54 @@
     <title>UNIT MONITORING - TACTICAL V7.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --neon-green: #00ff00;
-            --dark-bg: #000800;
-            --glass-bg: rgba(5, 15, 5, 0.9);
-            --danger: #ff0033;
-            --warning: #ffcc00;
-            --cyan: #00f2ff;
-        }
-
-        body { 
-            margin: 0; font-family: 'Orbitron', sans-serif; 
-            background: var(--dark-bg); color: var(--neon-green); 
-            overflow: hidden; height: 100vh; display: flex; flex-direction: column; 
-            user-select: none; -webkit-tap-highlight-color: transparent;
-            transition: filter 0.3s ease;
-        }
-
-        /* Tactical Grid Background */
-        .grid-bg {
-            position: fixed; inset: 0;
-            background-image: 
-                linear-gradient(rgba(0, 255, 0, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 0, 0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            z-index: -1;
-            transform: perspective(500px) rotateX(60deg);
-            transform-origin: center top;
-            animation: moveGrid 10s linear infinite;
-        }
+        :root { --neon-green: #00ff00; --dark-bg: #000800; --glass-bg: rgba(5, 15, 5, 0.9); --danger: #ff0033; --cyan: #00f2ff; }
+        body { margin: 0; font-family: 'Orbitron', sans-serif; background: var(--dark-bg); color: var(--neon-green); overflow: hidden; height: 100vh; display: flex; flex-direction: column; user-select: none; }
+        .grid-bg { position: fixed; inset: 0; background-image: linear-gradient(rgba(0, 255, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 0, 0.05) 1px, transparent 1px); background-size: 30px 30px; z-index: -1; transform: perspective(500px) rotateX(60deg); transform-origin: center top; animation: moveGrid 10s linear infinite; }
         @keyframes moveGrid { from { background-position: 0 0; } to { background-position: 0 300px; } }
-
-        .header { 
-            background: rgba(2, 18, 2, 0.95); padding: 12px; text-align: center; 
-            border-bottom: 2px solid var(--neon-green); font-weight: bold; 
-            letter-spacing: 4px; z-index: 50; text-transform: uppercase;
-            box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 15px; position: relative; }
-
-        /* Signal Strength Bars */
-        .sig-container { display: flex; gap: 3px; align-items: flex-end; height: 20px; margin-bottom: 10px; }
-        .sig-bar { width: 4px; background: rgba(0,255,0,0.1); border-radius: 1px; transition: 0.3s; }
-        .sig-bar.active { background: var(--neon-green); box-shadow: 0 0 5px var(--neon-green); }
-
-        #compass {
-            width: 110px; height: 110px; border: 2px solid var(--neon-green);
-            border-radius: 50%; margin-bottom: 15px; position: relative;
-            background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%);
-            box-shadow: 0 0 20px rgba(0,255,0,0.2); transition: transform 0.1s linear;
-        }
+        .header { background: rgba(2, 18, 2, 0.95); padding: 12px; text-align: center; border-bottom: 2px solid var(--neon-green); letter-spacing: 4px; z-index: 50; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3); }
+        .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 5; padding: 15px; }
+        #compass { width: 110px; height: 110px; border: 2px solid var(--neon-green); border-radius: 50%; margin-bottom: 15px; position: relative; background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%); }
         .needle { position: absolute; top: 50%; left: 50%; width: 3px; height: 45px; background: var(--cyan); transform-origin: bottom; transform: translate(-50%, -100%); box-shadow: 0 0 10px var(--cyan); }
-
-        .card { 
-            background: var(--glass-bg); padding: 20px; width: 100%; max-width: 350px; 
-            border: 1px solid var(--neon-green); position: relative; overflow: hidden;
-            border-radius: 10px; backdrop-filter: blur(10px);
-        }
-
-        .scan-bar { position: absolute; width: 100%; height: 4px; background: var(--cyan); top: -10px; left: 0; opacity: 0.5; box-shadow: 0 0 15px var(--cyan); }
-        @keyframes scan { 0% { top: -10%; } 100% { top: 110%; } }
-
-        input { 
-            width: 100%; padding: 15px; background: rgba(0, 0, 0, 0.9); 
-            border: 1px solid var(--neon-green); color: var(--neon-green); 
-            font-family: 'JetBrains Mono'; margin-bottom: 15px; 
-            box-sizing: border-box; outline: none; text-align: center; font-size: 16px;
-        }
-
-        .btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-        button { 
-            width: 100%; padding: 16px; border: none; font-weight: bold; cursor: pointer; 
-            font-family: 'Orbitron'; text-transform: uppercase; transition: 0.3s;
-            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
-        }
-
+        .card { background: var(--glass-bg); padding: 20px; width: 100%; max-width: 350px; border: 1px solid var(--neon-green); border-radius: 10px; backdrop-filter: blur(10px); position: relative; }
+        input { width: 100%; padding: 15px; background: #000; border: 1px solid var(--neon-green); color: var(--neon-green); font-family: 'JetBrains Mono'; margin-bottom: 15px; box-sizing: border-box; text-align: center; }
+        button { width: 100%; padding: 16px; border: none; font-weight: bold; font-family: 'Orbitron'; cursor: pointer; text-transform: uppercase; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%); }
         #btnTrack { background: var(--neon-green); color: #000; }
-        #btnTrack:disabled { background: #003300; color: #008800; cursor: wait; }
-        
-        .btn-terminate { background: transparent; color: var(--danger); border: 1px solid var(--danger); font-size: 11px; display: none; }
-        #btnSOS { background: var(--danger); color: #fff; display: none; font-size: 12px; animation: pulseRed 1.5s infinite; }
-
+        #btnSOS { background: var(--danger); color: #fff; display: none; margin-top: 10px; }
         .telemetry { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; font-family: 'JetBrains Mono'; }
         .tel-box { background: rgba(0,0,0,0.7); padding: 8px; border: 1px solid rgba(0, 255, 0, 0.2); }
         .tel-label { font-size: 8px; color: var(--cyan); display: block; }
         .tel-val { font-size: 14px; font-weight: bold; color: #fff; }
-
-        #status-bar { width: 100%; max-width: 350px; display: flex; justify-content: space-between; font-size: 10px; margin-top: 15px; font-family: 'JetBrains Mono'; color: #888; }
-        
-        /* Heartbeat effect */
-        .ping { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; display: inline-block; margin-right: 5px; opacity: 0; }
+        .ping { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; display: inline-block; opacity: 0; }
         .ping.active { animation: blink 0.5s; }
-        @keyframes blink { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
-
-        /* Fullscreen Overlay for Terminate */
-        #scrub-screen {
-            position: fixed; inset: 0; background: #000; z-index: 10000;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            color: var(--danger); font-family: 'JetBrains Mono'; text-align: center;
-        }
-
+        @keyframes blink { 0% { opacity: 1; } 100% { opacity: 0; } }
         .emergency-mode { filter: sepia(1) saturate(5) hue-rotate(-50deg); }
     </style>
 </head>
 <body>
-
 <div class="grid-bg"></div>
-
-<div id="boot-screen" style="position: fixed; inset: 0; background: #000; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; font-family: 'JetBrains Mono';">
-    <div style="color: var(--cyan); margin-bottom: 10px;" id="boot-text">> INITIALIZING_UPLINK...</div>
-    <div style="width: 250px; height: 4px; background: #111; overflow: hidden;"><div id="boot-progress" style="width: 0%; height: 100%; background: var(--cyan);"></div></div>
-</div>
-
-<div id="scrub-screen">
-    <div id="scrub-text" style="font-size: 18px; margin-bottom: 20px;">WIPING_DATA_LOCAL_&_REMOTE</div>
-    <div style="width: 200px; height: 2px; background: #200; overflow: hidden;"><div id="scrub-progress" style="width: 0%; height: 100%; background: var(--danger);"></div></div>
-    <div style="margin-top: 15px; font-size: 10px;">PROTOCOL ZERO INITIATED</div>
-</div>
-
 <div class="header">
-    <span style="font-size: 10px;">859-TAC</span>
-    <div style="display:flex; align-items:center;"><div id="hb" class="ping"></div><span>TACTICAL_V7</span></div>
-    <span id="pwr" style="font-size: 10px;">--%</span>
+    <span style="font-size: 10px;">TAC-UNIT</span>
+    <div><div id="hb" class="ping"></div> <span>TACTICAL_V7</span></div>
+    <span id="pwr">--%</span>
 </div>
-
 <div class="container">
-    <div class="sig-container" id="sig-bars">
-        <div class="sig-bar" style="height: 6px;"></div>
-        <div class="sig-bar" style="height: 10px;"></div>
-        <div class="sig-bar" style="height: 14px;"></div>
-        <div class="sig-bar" style="height: 18px;"></div>
-        <div class="sig-bar" style="height: 22px;"></div>
-    </div>
-
     <div id="compass"><div class="needle"></div></div>
-
-    <div class="card" id="mainCard">
-        <div class="scan-bar" id="scanner"></div>
-        <input type="text" id="nama" placeholder="UNIT_CALLSIGN" maxlength="12" spellcheck="false">
-        
-        <div class="btn-group">
-            <button id="btnTrack">Initiate Uplink</button>
-            <button id="btnSOS">SEND SOS BEACON</button>
-            <button id="btnTerm" class="btn-terminate">SCRUB & TERMINATE</button>
-        </div>
-        
+    <div class="card">
+        <input type="text" id="nama" placeholder="CALLSIGN_ID" maxlength="12">
+        <button id="btnTrack">Initiate Uplink</button>
+        <button id="btnSOS">SEND SOS BEACON</button>
         <div class="telemetry">
-            <div class="tel-box"><span class="tel-label">LATITUDE</span><span class="tel-val" id="lat">0.0000</span></div>
-            <div class="tel-box"><span class="tel-label">LONGITUDE</span><span class="tel-val" id="lon">0.0000</span></div>
-            <div class="tel-box"><span class="tel-label">SPD/ACC</span><span class="tel-val"><span id="spd">0</span><small>kmh</small> / <span id="acc">0</span><small>m</small></span></div>
-            <div class="tel-box"><span class="tel-label">PITCH</span><span class="tel-val" id="pitch">0°</span></div>
+            <div class="tel-box"><span class="tel-label">LAT</span><span class="tel-val" id="lat">0.0000</span></div>
+            <div class="tel-box"><span class="tel-label">LON</span><span class="tel-val" id="lon">0.0000</span></div>
+            <div class="tel-box"><span class="tel-label">SPEED</span><span class="tel-val" id="spd">0 kmh</span></div>
+            <div class="tel-box"><span class="tel-label">ACCURACY</span><span class="tel-val" id="acc">0 m</span></div>
         </div>
-    </div>
-
-    <div id="status-bar">
-        <span id="msg">AWAITING_AUTH</span>
-        <span id="time">00:00:00</span>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onDisconnect, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
@@ -183,97 +67,54 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    let isSOS = false;
 
-    const btn = document.getElementById("btnTrack");
-    const btnSOS = document.getElementById("btnSOS");
-    const btnTerm = document.getElementById("btnTerm");
-    const hb = document.getElementById("hb");
-    let isEmergency = false;
-    let watchID = null;
-
-    // Time & Battery
-    setInterval(() => { document.getElementById("time").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
-    navigator.getBattery?.().then(bat => {
-        const up = () => document.getElementById("pwr").innerText = `${Math.round(bat.level * 100)}%`;
-        up(); bat.onlevelchange = up;
+    // Battery
+    navigator.getBattery?.().then(b => {
+        const update = () => document.getElementById("pwr").innerText = Math.round(b.level*100) + "%";
+        update(); b.onlevelchange = update;
     });
 
     // Orientation
     window.addEventListener("deviceorientation", (e) => {
         let heading = e.webkitCompassHeading || (360 - e.alpha);
         document.getElementById("compass").style.transform = `rotate(${-heading}deg)`;
-        document.getElementById("pitch").innerText = Math.round(e.beta || 0) + "°";
     });
 
-    btn.onclick = async function() {
-        const nama = document.getElementById("nama").value.trim().toUpperCase();
-        if(!nama) return alert("CALLSIGN REQUIRED");
+    document.getElementById("btnTrack").onclick = function() {
+        const callsign = document.getElementById("nama").value.trim().toUpperCase();
+        if(!callsign) return alert("REQUIRED: CALLSIGN");
 
-        document.getElementById("boot-screen").style.display = 'flex';
-        for(let i=0; i<=100; i+=10) {
-            document.getElementById("boot-progress").style.width = i + '%';
-            await new Promise(r => setTimeout(r, 50));
-        }
-        document.getElementById("boot-screen").style.display = 'none';
+        this.style.display = "none";
+        document.getElementById("btnSOS").style.display = "block";
 
-        btn.style.display = "none";
-        btnSOS.style.display = "block";
-        btnTerm.style.display = "block";
-        document.getElementById("scanner").style.animation = "scan 3s infinite linear";
-
-        watchID = navigator.geolocation.watchPosition((pos) => {
-            const updates = {
-                lat: pos.coords.latitude,
-                lon: pos.coords.longitude,
-                spd: Math.round((pos.coords.speed || 0) * 3.6),
-                acc: Math.round(pos.coords.accuracy),
+        navigator.geolocation.watchPosition((pos) => {
+            const data = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                speed: Math.round((pos.coords.speed || 0) * 3.6),
+                accuracy: Math.round(pos.coords.accuracy),
                 ts: Date.now(),
-                status: isEmergency ? "EMERGENCY" : "ACTIVE"
+                status: isSOS ? "EMERGENCY" : "ACTIVE"
             };
 
-            set(ref(db, "live/" + nama), updates);
-            onDisconnect(ref(db, "live/" + nama)).remove();
+            set(ref(db, "live/" + callsign), data);
+            onDisconnect(ref(db, "live/" + callsign)).remove();
 
-            // Heartbeat & Signal UI
-            hb.classList.add('active'); setTimeout(() => hb.classList.remove('active'), 500);
-            updateSignalBars(updates.acc);
-
-            document.getElementById("lat").innerText = updates.lat.toFixed(4);
-            document.getElementById("lon").innerText = updates.lon.toFixed(4);
-            document.getElementById("spd").innerText = updates.spd;
-            document.getElementById("acc").innerText = updates.acc;
-            document.getElementById("msg").innerText = isEmergency ? "!! SOS_BROADCASTING !!" : "LINK_STABLE";
+            document.getElementById("lat").innerText = data.latitude.toFixed(4);
+            document.getElementById("lon").innerText = data.longitude.toFixed(4);
+            document.getElementById("spd").innerText = data.speed + " kmh";
+            document.getElementById("acc").innerText = data.accuracy + " m";
+            
+            const hb = document.getElementById("hb");
+            hb.classList.add("active"); setTimeout(() => hb.classList.remove("active"), 400);
         }, null, { enableHighAccuracy: true });
     };
 
-    function updateSignalBars(acc) {
-        const bars = document.querySelectorAll('.sig-bar');
-        bars.forEach(b => b.classList.remove('active'));
-        let count = acc < 10 ? 5 : acc < 30 ? 4 : acc < 60 ? 3 : acc < 100 ? 2 : 1;
-        for(let i=0; i<count; i++) bars[i].classList.add('active');
-    }
-
-    btnSOS.onclick = () => {
-        isEmergency = !isEmergency;
+    document.getElementById("btnSOS").onclick = function() {
+        isSOS = !isSOS;
         document.body.classList.toggle("emergency-mode");
-        btnSOS.innerText = isEmergency ? "CANCEL SOS" : "SEND SOS BEACON";
-    };
-
-    btnTerm.onclick = async function() {
-        if(!confirm("CONFIRM DATA SCRUB?")) return;
-        
-        const nama = document.getElementById("nama").value.trim().toUpperCase();
-        document.getElementById("scrub-screen").style.display = "flex";
-        
-        // Protocol Zero Animation
-        for(let i=0; i<=100; i+=2) {
-            document.getElementById("scrub-progress").style.width = i + '%';
-            if(i === 40) await remove(ref(db, "live/" + nama)); // Hapus data di tengah loading
-            await new Promise(r => setTimeout(r, 30));
-        }
-
-        document.body.style.filter = "invert(1) contrast(5) blur(10px)";
-        setTimeout(() => window.location.reload(), 500);
+        this.innerText = isSOS ? "CANCEL SOS" : "SEND SOS BEACON";
     };
 </script>
 </body>
