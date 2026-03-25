@@ -1,89 +1,70 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UNIT_TRACKER_V5</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <title>HQ_DASHBOARD</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&family=Rajdhani:wght@600&display=swap" rel="stylesheet">
     <style>
-        :root { --neon: #00ff41; --bg: #000; }
-        body { margin: 0; background: var(--bg); color: var(--neon); font-family: 'Share Tech Mono', monospace; text-transform: uppercase; overflow: hidden; }
-        .wrapper { height: 100vh; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; border: 2px solid var(--neon); }
-        .panel { border: 1px solid var(--neon); padding: 15px; flex-grow: 1; display: flex; flex-direction: column; background: rgba(0,255,65,0.05); }
-        input, button { 
-            width: 100%; padding: 15px; margin: 5px 0; border: 1px solid var(--neon); 
-            background: #000; color: var(--neon); font-family: 'Orbitron'; cursor: pointer;
-        }
-        button:hover { background: var(--neon); color: #000; }
-        #log { font-size: 10px; color: #00e5ff; height: 100px; overflow-y: auto; border-top: 1px solid #333; margin-top: auto; padding-top: 10px; }
-        .hidden { display: none; }
+        body { margin: 0; background: #000; color: #00ff41; font-family: 'Rajdhani'; display: flex; height: 100vh; }
+        #sidebar { width: 300px; border-right: 1px solid #00ff41; padding: 15px; overflow-y: auto; background: rgba(0,10,0,0.9); }
+        #map { flex-grow: 1; filter: invert(100%) hue-rotate(180deg) brightness(0.5); }
+        .card { border: 1px solid #333; padding: 10px; margin-bottom: 10px; cursor: pointer; transition: 0.3s; }
+        .card:hover { border-color: #00ff41; background: rgba(0,255,0,0.1); }
+        .online { color: #00ff41; font-size: 10px; }
+        .offline { color: #555; font-size: 10px; }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div id="login">
-            <h2 style="font-family: 'Orbitron';">NEURAL_LINK</h2>
-            <input type="text" id="callsign" placeholder="INPUT CALLSIGN...">
-            <button onclick="startSystem()">ESTABLISH UPLINK</button>
-        </div>
-
-        <div id="display" class="hidden" style="height: 100%; display: flex; flex-direction: column;">
-            <div style="font-family: 'Orbitron'; font-size: 20px; border-bottom: 2px solid var(--neon); margin-bottom: 10px;">
-                ID: <span id="idTag"></span>
-            </div>
-            <div id="stats">
-                LAT: <span id="lat">0</span><br>
-                LON: <span id="lon">0</span><br>
-                SPD: <span id="spd">0</span> KM/H
-            </div>
-            <div id="log"></div>
-        </div>
+    <div id="sidebar">
+        <h2 style="font-family: 'Orbitron'; font-size: 18px;">ACTIVE_UNITS</h2>
+        <div id="list">MENCARI SIGNAL...</div>
     </div>
+    <div id="map"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const conf = {
-            apiKey: "AIzaSyAwRrHaHepQtAGLj9JrC3vlJG37o3j9CPY",
             databaseURL: "https://real-time-location-30d91-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "real-time-location-30d91",
         };
 
         const app = initializeApp(conf);
         const db = getDatabase(app);
+        const map = L.map('map').setView([-2.0, 120.0], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        window.startSystem = () => {
-            const name = document.getElementById('callsign').value.toUpperCase();
-            if(!name) return alert("CALLSIGN REQ");
-            document.getElementById('idTag').innerText = name;
-            document.getElementById('login').classList.add('hidden');
-            document.getElementById('display').classList.remove('hidden');
-            
-            navigator.geolocation.watchPosition(p => {
-                const data = {
-                    lat: p.coords.latitude,
-                    lon: p.coords.longitude,
-                    speed: p.coords.speed || 0,
-                    waktu: Date.now(),
-                    accuracy: p.coords.accuracy
-                };
-                
-                document.getElementById('lat').innerText = data.lat.toFixed(5);
-                document.getElementById('lon').innerText = data.lon.toFixed(5);
-                document.getElementById('spd').innerText = (data.speed * 3.6).toFixed(1);
+        let markers = {};
 
-                update(ref(db, 'live/' + name), data)
-                    .then(() => addLog("SYNC_OK"))
-                    .catch(e => addLog("ERR: " + e.message));
+        onValue(ref(db, 'live'), (snap) => {
+            const data = snap.val();
+            const listDiv = document.getElementById('list');
+            listDiv.innerHTML = "";
+            if(!data) return;
 
-            }, e => addLog("GPS_ERR"), { enableHighAccuracy: true });
-        };
+            for(let id in data) {
+                const u = data[id];
+                const pos = [u.lat, u.lon];
+                const isOnline = (Date.now() - u.waktu) < 30000;
 
-        function addLog(m) {
-            const l = document.getElementById('log');
-            l.innerHTML = `> ${m}<br>` + l.innerHTML;
-        }
+                // Update Marker
+                if(markers[id]) {
+                    markers[id].setLatLng(pos);
+                } else {
+                    markers[id] = L.circleMarker(pos, {color: '#0f0', radius: 8}).addTo(map).bindTooltip(id);
+                }
+
+                // Update List
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `<strong>${id}</strong><br>
+                                  <span class="${isOnline?'online':'offline'}">${isOnline?'● ONLINE':'○ OFFLINE'}</span><br>
+                                  <small>SPD: ${(u.speed*3.6).toFixed(1)} KM/H</small>`;
+                card.onclick = () => map.flyTo(pos, 15);
+                listDiv.appendChild(card);
+            }
+        });
     </script>
 </body>
 </html>
