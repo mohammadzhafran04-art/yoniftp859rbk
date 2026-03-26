@@ -15,7 +15,6 @@
     <style>
         :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --panel-bg: rgba(0, 10, 0, 0.9); --danger: #ff1144; }
         
-        /* Loading Overlay agar tidak kedip saat cek login */
         #auth-loader { 
             position: fixed; top:0; left:0; width:100%; height:100%; 
             background:#000; z-index: 9999; display: flex; 
@@ -61,6 +60,8 @@
 
         #btnLogout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-family: 'Orbitron'; font-size: 10px; padding: 5px 15px; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
         #btnLogout:hover { background: var(--danger); color: #fff; box-shadow: 0 0 10px var(--danger); }
+        
+        @keyframes load-bar { from { left: -100%; } to { left: 100%; } }
     </style>
 </head>
 <body>
@@ -71,8 +72,6 @@
         <div style="position: absolute; width: 50%; height: 100%; background: var(--neon-green); animation: load-bar 1s infinite;"></div>
     </div>
 </div>
-
-<style> @keyframes load-bar { from { left: -100%; } to { left: 100%; } } </style>
 
 <div class="header">
     <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V8.0</span></div>
@@ -130,16 +129,16 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // --- SECURITY GUARD DENGAN LOADING STATE ---
+    // --- LOGIKA PENGUNCI DASHBOARD (FIXED) ---
     onAuthStateChanged(auth, (user) => {
         if (!user) {
-            // Belum login, buang ke login.html
+            // Jika tidak ada user, paksa ke login tanpa ampun
             window.location.replace("login.html");
         } else {
-            // Login terverifikasi, hilangkan loader
+            // Jika login valid, hapus loader dan aktifkan dashboard
             document.getElementById("auth-loader").style.display = "none";
-            addLog("ACCESS_GRANTED: COMMANDER_ID_" + user.email.split('@')[0].toUpperCase());
-            startApp(); // Jalankan aplikasi setelah login pasti
+            addLog("ACCESS_GRANTED: " + user.email.split('@')[0].toUpperCase());
+            startApp();
         }
     });
 
@@ -152,7 +151,6 @@
     };
 
     function startApp() {
-        // Pindahkan semua inisialisasi ke sini agar tidak bentrok
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
         }
@@ -161,19 +159,18 @@
             document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); 
         }, 1000);
 
-        // Map setup ditaruh di sini
         initMap();
     }
 
     let map, googleHybrid;
     function initMap() {
+        if (map) return; // Mencegah inisialisasi ganda
         map = L.map('map', { center: [-7.644, 111.902], zoom: 13, zoomControl: false });
         googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
         
-        // Mulai dengerin data Firebase setelah Map siap
         listenToFirebase();
     }
 
@@ -183,6 +180,7 @@
 
     function addLog(msg) {
         const log = document.getElementById("logs");
+        if (!log) return;
         const entry = document.createElement("div");
         entry.innerText = `> ${msg}`;
         log.prepend(entry);
