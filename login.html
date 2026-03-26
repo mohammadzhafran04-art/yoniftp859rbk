@@ -4,23 +4,173 @@
     <meta charset="UTF-8">
     <title>Command Center Access</title>
     <style>
-        /* Gaya CSS kamu tetap sama, saya pertahankan */
-        body { margin: 0; font-family: monospace; background: #020702; color: #00ff9c; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        body::before { content: ""; position: absolute; width: 1400px; height: 1400px; border-radius: 50%; border: 2px solid rgba(0, 255, 120, 0.15); top: 50%; left: 50%; transform: translate(-50%, -50%); animation: spin 30s linear infinite; }
+        /* Gaya Dasar & Latar Belakang */
+        body { 
+            margin: 0; 
+            font-family: 'JetBrains Mono', monospace; 
+            background: radial-gradient(circle, #081208 0%, #000 100%); 
+            color: #00ff9c; 
+            height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            overflow: hidden; 
+        }
+
+        /* Animasi Lingkaran Radar */
+        body::before { 
+            content: ""; 
+            position: absolute; 
+            width: 1400px; 
+            height: 1400px; 
+            border-radius: 50%; 
+            border: 2px solid rgba(0, 255, 120, 0.1); 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            animation: spin 30s linear infinite; 
+        }
+
         @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        .radar { position: absolute; width: 2000px; height: 2000px; background: conic-gradient(rgba(0, 255, 0, 0.4) 0deg, rgba(0, 255, 0, 0.1) 30deg, transparent 90deg); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: radarSweep 5s linear infinite; z-index: 1; }
+
+        /* Sapuan Radar */
+        .radar { 
+            position: absolute; 
+            width: 2000px; 
+            height: 2000px; 
+            background: conic-gradient(rgba(0, 255, 120, 0.2) 0deg, transparent 90deg); 
+            border-radius: 50%; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            animation: radarSweep 5s linear infinite; 
+            z-index: 1; 
+        }
+
         @keyframes radarSweep { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
-        .card { width: 380px; padding: 40px; background: #081208; border-radius: 10px; border: 1px solid rgba(0, 255, 120, 0.3); box-shadow: 0 0 30px rgba(0, 255, 120, 0.2); text-align: center; z-index: 2; position: relative; }
-        .title { font-size: 22px; margin-bottom: 20px; letter-spacing: 2px; }
-        .scan { margin: 20px auto; width: 120px; height: 120px; border-radius: 50%; border: 2px solid #00ff9c; position: relative; overflow: hidden; }
-        .scan::after { content: ""; position: absolute; width: 100%; height: 3px; background: #00ff9c; top: 0; animation: scan 2s infinite; }
-        @keyframes scan { 0% { top: 0 } 100% { top: 120px } }
-        input { width: 100%; padding: 12px; border: none; border-radius: 5px; background: #0f1a0f; color: #00ff9c; border: 1px solid rgba(0, 255, 120, 0.4); outline: none; box-sizing: border-box; margin-bottom: 10px; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 5px; background: #00ff9c; color: black; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #00cc7e; box-shadow: 0 0 15px #00ff9c; }
-        #terminal { margin-top: 15px; font-size: 14px; height: 60px; white-space: pre-wrap; text-align: left; font-family: 'JetBrains Mono', monospace; }
+
+        /* Kartu Login dengan Efek Kaca (Glassmorphism) */
+        .card { 
+            width: 380px; 
+            padding: 40px; 
+            background: rgba(8, 18, 8, 0.85); 
+            border-radius: 15px; 
+            border: 1px solid rgba(0, 255, 120, 0.4); 
+            box-shadow: 0 0 50px rgba(0, 255, 120, 0.15); 
+            text-align: center; 
+            z-index: 2; 
+            position: relative; 
+            backdrop-filter: blur(10px);
+        }
+
+        /* Efek Garis Layar (Scanlines) */
+        .card::after {
+            content: ""; 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 255, 156, 0.03) 2px);
+            pointer-events: none;
+            border-radius: 15px;
+        }
+
+        .title { 
+            font-size: 22px; 
+            margin-bottom: 20px; 
+            letter-spacing: 4px; 
+            font-weight: bold; 
+            text-shadow: 0 0 10px #00ff9c;
+        }
+
+        /* Animasi Retina Scan */
+        .scan { 
+            margin: 20px auto; 
+            width: 110px; 
+            height: 110px; 
+            border-radius: 50%; 
+            border: 2px solid #00ff9c; 
+            position: relative; 
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 156, 0.3);
+        }
+
+        .scan::after { 
+            content: ""; 
+            position: absolute; 
+            width: 100%; 
+            height: 3px; 
+            background: #00ff9c; 
+            top: 0; 
+            animation: scan 2s infinite; 
+            box-shadow: 0 0 15px #00ff9c;
+        }
+
+        @keyframes scan { 0% { top: 0 } 100% { top: 110px } }
+
+        /* Input Styling */
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid rgba(0, 255, 120, 0.3); 
+            border-radius: 5px; 
+            background: #050a05; 
+            color: #00ff9c; 
+            outline: none; 
+            box-sizing: border-box; 
+            margin-bottom: 12px; 
+            font-family: 'JetBrains Mono', monospace;
+            transition: 0.3s;
+        }
+
+        input:focus { 
+            border-color: #00ff9c; 
+            box-shadow: 0 0 15px rgba(0, 255, 156, 0.4); 
+            background: #0a150a; 
+        }
+
+        /* Tombol Authenticate */
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            border: none; 
+            border-radius: 5px; 
+            background: #00ff9c; 
+            color: black; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        button:hover { 
+            background: #00cc7e; 
+            box-shadow: 0 0 25px #00ff9c; 
+            transform: translateY(-2px);
+        }
+
+        /* Terminal Text Area */
+        #terminal { 
+            margin-top: 20px; 
+            font-size: 13px; 
+            height: 60px; 
+            white-space: pre-wrap; 
+            text-align: left; 
+            color: rgba(0, 255, 156, 0.8);
+            border-top: 1px solid rgba(0, 255, 156, 0.1);
+            padding-top: 10px;
+        }
+
         .loading { display: none; margin-top: 15px; }
-        .spinner { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; border-top-color: #00ff9c; margin: auto; animation: spin 0.6s linear infinite; }
+        .spinner { 
+            width: 30px; 
+            height: 30px; 
+            border-radius: 50%; 
+            border: 2px solid transparent; 
+            border-top-color: #00ff9c; 
+            margin: auto; 
+            animation: spin 0.6s linear infinite; 
+        }
     </style>
 </head>
 <body>
@@ -31,8 +181,8 @@
     <div class="title">COMMAND CENTER LOGIN</div>
     <div class="scan"></div>
     
-    <input type="email" id="email" placeholder="Email" value="">
-    <input type="password" id="pass" placeholder="Password">
+    <input type="email" id="email" placeholder="Access Email" value="">
+    <input type="password" id="pass" placeholder="Security Code">
 
     <button id="btnLogin">AUTHENTICATE</button>
 
@@ -86,7 +236,6 @@
         loading.style.display = "block";
 
         try {
-            // Proses Login Ke Firebase
             await signInWithEmailAndPassword(auth, email, pass);
             
             loading.style.display = "none";
