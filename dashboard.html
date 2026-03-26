@@ -15,24 +15,27 @@
     <style>
         :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --panel-bg: rgba(0, 10, 0, 0.9); --danger: #ff1144; }
         
+        /* Loading Overlay agar tidak kedip saat cek login */
+        #auth-loader { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background:#000; z-index: 9999; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+            font-family: 'Orbitron', sans-serif; color: var(--neon-green);
+        }
+
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
         
-        /* Header */
         .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); box-shadow: 0 0 20px rgba(0,255,0,0.3); z-index: 1000; position: relative; }
-
         .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); gap: 0; background: #000; }
         
-        /* Responsive for Mobile */
         @media (max-width: 1024px) {
             .main-container { grid-template-columns: 1fr; grid-template-rows: 200px 1fr 200px; }
             .panel { overflow-y: scroll; }
         }
 
         .panel { background: var(--panel-bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
-
         #map { background: #000; height: 100%; width: 100%; }
         
-        /* Radar Pulse Animation */
         @keyframes pulse-radar {
             0% { transform: scale(1); opacity: 0.8; }
             100% { transform: scale(3); opacity: 0; }
@@ -56,12 +59,20 @@
 
         .analytics { margin-top: auto; padding: 15px; background: rgba(0,20,0,0.5); border-top: 1px solid var(--neon-green); font-family: 'JetBrains Mono'; font-size: 10px; }
 
-        /* Logout Button Style */
         #btnLogout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-family: 'Orbitron'; font-size: 10px; padding: 5px 15px; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
         #btnLogout:hover { background: var(--danger); color: #fff; box-shadow: 0 0 10px var(--danger); }
     </style>
 </head>
 <body>
+
+<div id="auth-loader">
+    <div style="font-size: 24px; margin-bottom: 10px; letter-spacing: 5px;">VERIFYING_ACCESS...</div>
+    <div style="width: 200px; height: 2px; background: rgba(0,255,0,0.2); position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 50%; height: 100%; background: var(--neon-green); animation: load-bar 1s infinite;"></div>
+    </div>
+</div>
+
+<style> @keyframes load-bar { from { left: -100%; } to { left: 100%; } } </style>
 
 <div class="header">
     <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V8.0</span></div>
@@ -103,7 +114,6 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    // Tambahkan Auth
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -120,47 +130,56 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // --- SECURITY GUARD: CEK STATUS LOGIN ---
+    // --- SECURITY GUARD DENGAN LOADING STATE ---
     onAuthStateChanged(auth, (user) => {
         if (!user) {
-            // Jika tidak login, arahkan ke login.html
-            window.location.href = "login.html";
+            // Belum login, buang ke login.html
+            window.location.replace("login.html");
         } else {
-            addLog("AUTH_STATUS: GRANTED");
+            // Login terverifikasi, hilangkan loader
+            document.getElementById("auth-loader").style.display = "none";
+            addLog("ACCESS_GRANTED: COMMANDER_ID_" + user.email.split('@')[0].toUpperCase());
+            startApp(); // Jalankan aplikasi setelah login pasti
         }
     });
 
-    // --- LOGOUT FUNCTION ---
     document.getElementById("btnLogout").onclick = () => {
         if(confirm("TERMINATE COMMAND SESSION?")) {
             signOut(auth).then(() => {
-                window.location.href = "login.html";
+                window.location.replace("login.html");
             });
         }
     };
 
-    // Register Service Worker for PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+    function startApp() {
+        // Pindahkan semua inisialisasi ke sini agar tidak bentrok
+        if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
-        });
+        }
+
+        setInterval(() => { 
+            document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); 
+        }, 1000);
+
+        // Map setup ditaruh di sini
+        initMap();
     }
 
-    // Initialize Map dengan Google Hybrid
-    const map = L.map('map', { center: [-7.644, 111.902], zoom: 13, zoomControl: false });
-    
-    const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-        maxZoom: 20,
-        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-    }).addTo(map);
+    let map, googleHybrid;
+    function initMap() {
+        map = L.map('map', { center: [-7.644, 111.902], zoom: 13, zoomControl: false });
+        googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        }).addTo(map);
+        
+        // Mulai dengerin data Firebase setelah Map siap
+        listenToFirebase();
+    }
 
     let markers = {};
     let pulseCircles = {};
     let selectedId = null;
-
-    setInterval(() => { 
-        document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); 
-    }, 1000);
 
     function addLog(msg) {
         const log = document.getElementById("logs");
@@ -169,73 +188,75 @@
         log.prepend(entry);
     }
 
-    onValue(ref(db, "live"), snap => {
-        const data = snap.val() || {};
-        const list = document.getElementById("unit-list");
-        list.innerHTML = "";
-        let totalSpd = 0;
-        let count = 0;
+    function listenToFirebase() {
+        onValue(ref(db, "live"), snap => {
+            const data = snap.val() || {};
+            const list = document.getElementById("unit-list");
+            list.innerHTML = "";
+            let totalSpd = 0;
+            let count = 0;
 
-        Object.keys(markers).forEach(id => {
-            if(!data[id]) {
-                map.removeLayer(markers[id]);
-                map.removeLayer(pulseCircles[id]);
-                delete markers[id];
-                delete pulseCircles[id];
-                addLog(`CONN_LOST: ${id}`);
-            }
-        });
+            Object.keys(markers).forEach(id => {
+                if(!data[id]) {
+                    map.removeLayer(markers[id]);
+                    map.removeLayer(pulseCircles[id]);
+                    delete markers[id];
+                    delete pulseCircles[id];
+                    addLog(`CONN_LOST: ${id}`);
+                }
+            });
 
-        Object.keys(data).forEach(id => {
-            const unit = data[id];
-            const isSOS = unit.status === "EMERGENCY";
-            const isOnline = (Date.now() - unit.ts) < 15000;
-            count++;
-            totalSpd += unit.speed;
+            Object.keys(data).forEach(id => {
+                const unit = data[id];
+                const isSOS = unit.status === "EMERGENCY";
+                const isOnline = (Date.now() - unit.ts) < 15000;
+                count++;
+                totalSpd += unit.speed;
 
-            const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
+                const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
 
-            if(!markers[id]) {
-                markers[id] = L.circleMarker([unit.latitude, unit.longitude], {
-                    radius: 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1
-                }).addTo(map);
+                if(!markers[id]) {
+                    markers[id] = L.circleMarker([unit.latitude, unit.longitude], {
+                        radius: 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1
+                    }).addTo(map);
+                    
+                    pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
+                        radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
+                    }).addTo(map);
+                    addLog(`CONN_ESTABLISHED: ${id}`);
+                } else {
+                    markers[id].setLatLng([unit.latitude, unit.longitude]);
+                    markers[id].setStyle({ fillColor: color });
+                    pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
+                    pulseCircles[id].setStyle({ color: color });
+                }
+
+                const card = document.createElement("div");
+                card.className = `unit-card ${isSOS ? 'sos' : ''}`;
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-weight:bold;">${id}</span>
+                        <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${unit.status}</span>
+                    </div>
+                    <div class="stat-row"><span>VELOCITY</span><span>${unit.speed} KM/H</span></div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed, 100)}%; background:var(--neon-blue)"></div></div>
+                    <div class="stat-row"><span>GPS_PRECISION</span><span>${unit.accuracy}M</span></div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:${Math.max(100-unit.accuracy, 10)}%; background:var(--neon-green)"></div></div>
+                `;
                 
-                pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
-                    radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
-                }).addTo(map);
-                addLog(`CONN_ESTABLISHED: ${id}`);
-            } else {
-                markers[id].setLatLng([unit.latitude, unit.longitude]);
-                markers[id].setStyle({ fillColor: color });
-                pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
-                pulseCircles[id].setStyle({ color: color });
-            }
+                card.onclick = () => {
+                    selectedId = id;
+                    map.flyTo([unit.latitude, unit.longitude], 18);
+                    showDetail(id, unit);
+                };
+                list.appendChild(card);
+                if(selectedId === id) showDetail(id, unit);
+            });
 
-            const card = document.createElement("div");
-            card.className = `unit-card ${isSOS ? 'sos' : ''}`;
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:bold;">${id}</span>
-                    <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${unit.status}</span>
-                </div>
-                <div class="stat-row"><span>VELOCITY</span><span>${unit.speed} KM/H</span></div>
-                <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed, 100)}%; background:var(--neon-blue)"></div></div>
-                <div class="stat-row"><span>GPS_PRECISION</span><span>${unit.accuracy}M</span></div>
-                <div class="progress-bg"><div class="progress-fill" style="width:${Math.max(100-unit.accuracy, 10)}%; background:var(--neon-green)"></div></div>
-            `;
-            
-            card.onclick = () => {
-                selectedId = id;
-                map.flyTo([unit.latitude, unit.longitude], 18);
-                showDetail(id, unit);
-            };
-            list.appendChild(card);
-            if(selectedId === id) showDetail(id, unit);
+            document.getElementById("count").innerText = count;
+            document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
         });
-
-        document.getElementById("count").innerText = count;
-        document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
-    });
+    }
 
     function showDetail(id, unit) {
         document.getElementById("detail-box").innerHTML = `
