@@ -97,25 +97,21 @@
     
     let isSOS = false, currentCallsign = "", watchId = null, wakeLock = null, deferredPrompt;
 
-    // 1. SERVICE WORKER
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').then(() => console.log("SW Ready"));
         });
     }
 
-    // 2. TANGKAP EVENT INSTALL
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
     });
 
-    // --- OPTIMASI: KLIK NAMA LANGSUNG MUNCUL INSTALL ---
     document.getElementById("nama").addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') console.log('User installed app');
             deferredPrompt = null;
         }
     });
@@ -158,17 +154,23 @@
         if (heading) document.getElementById("compass").style.transform = `rotate(${-heading}deg)`;
     });
 
-    // 4. MAIN ACTION: INITIATE UPLINK
+    // --- LOGIKA UTAMA: URUTAN IZIN ---
     document.getElementById("btnTrack").onclick = async function() {
         const callsign = document.getElementById("nama").value.trim().toUpperCase();
-        if(!callsign) { showNotify("REQUIRED: CALLSIGN ID", "error"); return; }
+        if(!callsign) { showNotify("REQUIRED: NAMA ANDA", "error"); return; }
 
-        // --- OPTIMASI: MINTA IZIN NOTIFIKASI SAAT KLIK TRACK ---
+        // 1. Minta Izin Notifikasi
         if ('Notification' in window) {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
                 showNotify("WARNING: NOTIFICATION DENIED", "error");
             }
+        }
+
+        // 2. Langsung Minta Izin Lokasi (GPS)
+        if (!navigator.geolocation) {
+            showNotify("GPS NOT SUPPORTED", "error");
+            return;
         }
 
         requestWakeLock();
@@ -177,6 +179,7 @@
         document.getElementById("nama").disabled = true;
         currentCallsign = callsign;
 
+        // Initiate watchPosition (ini yang memicu prompt "Allow Location")
         watchId = navigator.geolocation.watchPosition((pos) => {
             const data = {
                 latitude: pos.coords.latitude,
@@ -209,14 +212,19 @@
             hb.classList.add("active"); setTimeout(() => hb.classList.remove("active"), 400);
 
         }, (err) => {
+            // Jika user menolak lokasi
             showNotify("GPS ERROR: " + err.message, "error");
-        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+            // Kembalikan tombol jika gagal izin
+            document.getElementById("btnTrack").style.display = "block";
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("nama").disabled = false;
+        }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
     };
 
     document.getElementById("btnSOS").onclick = function() {
         isSOS = !isSOS;
         document.body.classList.toggle("emergency-mode");
-        this.innerText = isSOS ? "CANCEL SOS" : "SEND SOS BEACON";
+        this.innerText = isSOS ? "CANCEL SOS" : "SEND SOS";
         if (currentCallsign) {
             update(ref(db, "live/" + currentCallsign), { status: isSOS ? "EMERGENCY" : "ACTIVE", ts: Date.now() });
             if (isSOS && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
