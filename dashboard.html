@@ -2,7 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HQ - COMMAND CENTER v8.0</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -16,9 +22,14 @@
 
         .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); gap: 0; background: #000; }
         
+        /* Responsive for Mobile */
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; grid-template-rows: 200px 1fr 200px; }
+            .panel { overflow-y: scroll; }
+        }
+
         .panel { background: var(--panel-bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
 
-        /* Map Fix: High Contrast Satellite */
         #map { background: #000; height: 100%; width: 100%; }
         
         /* Radar Pulse Animation */
@@ -28,27 +39,21 @@
         }
         .radar-icon { border-radius: 50%; animation: pulse-radar 2s infinite; }
 
-        /* Unit Cards */
         .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; transition: 0.3s; background: rgba(0,40,0,0.3); position: relative; border-radius: 4px; }
         .unit-card:hover { background: rgba(0,242,255,0.1); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,242,255,0.2); }
         .unit-card.sos { border-color: var(--danger); animation: danger-glow 1s infinite alternate; }
         @keyframes danger-glow { from { box-shadow: 0 0 5px var(--danger); } to { box-shadow: 0 0 20px var(--danger); } }
 
-        /* Modern Progress Bars */
         .stat-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; font-family: 'JetBrains Mono'; }
         .progress-bg { background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
         .progress-fill { height: 100%; transition: 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
 
-        /* Detail Box */
         #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.8); box-shadow: inset 0 0 10px var(--neon-blue); margin-bottom: 15px; }
-
         .tag { font-size: 10px; color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 12px; display: block; font-weight: bold; border-left: 3px solid var(--neon-blue); padding-left: 8px; }
 
-        /* Satellite Feed Window */
-        .visual-feed { width: 100%; height: 200px; border: 1px solid #444; position: relative; border-radius: 8px; overflow: hidden; }
+        .visual-feed { width: 100%; height: 200px; border: 1px solid #444; border-radius: 8px; overflow: hidden; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        /* Analytics Panel */
         .analytics { margin-top: auto; padding: 15px; background: rgba(0,20,0,0.5); border-top: 1px solid var(--neon-green); font-family: 'JetBrains Mono'; font-size: 10px; }
     </style>
 </head>
@@ -83,7 +88,7 @@
 
         <div style="margin-top: 20px;">
             <span class="tag">NETWORK_TRAFFIC</span>
-            <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#00ff00; height: 120px; overflow:hidden; opacity: 0.7;"></div>
+            <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#00ff00; height: 120px; overflow-y:auto; opacity: 0.7;"></div>
         </div>
     </div>
 </div>
@@ -105,8 +110,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Initialize Map with Google Hybrid (Satelit Nyata + Jalan)
-    const map = L.map('map', { center: [-2.5, 118], zoom: 5, zoomControl: false });
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+        });
+    }
+
+    // Initialize Map dengan Google Hybrid
+    const map = L.map('map', { center: [-7.644, 111.902], zoom: 13, zoomControl: false });
     
     const googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
         maxZoom: 20,
@@ -135,7 +147,6 @@
         let totalSpd = 0;
         let count = 0;
 
-        // Cleanup OFFLINE
         Object.keys(markers).forEach(id => {
             if(!data[id]) {
                 map.removeLayer(markers[id]);
@@ -149,13 +160,12 @@
         Object.keys(data).forEach(id => {
             const unit = data[id];
             const isSOS = unit.status === "EMERGENCY";
-            const isOnline = (Date.now() - unit.ts) < 30000;
+            const isOnline = (Date.now() - unit.ts) < 15000;
             count++;
             totalSpd += unit.speed;
 
             const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
 
-            // Map Markers & Pulse
             if(!markers[id]) {
                 markers[id] = L.circleMarker([unit.latitude, unit.longitude], {
                     radius: 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1
@@ -172,7 +182,6 @@
                 pulseCircles[id].setStyle({ color: color });
             }
 
-            // UI Cards
             const card = document.createElement("div");
             card.className = `unit-card ${isSOS ? 'sos' : ''}`;
             card.innerHTML = `
@@ -195,7 +204,6 @@
             if(selectedId === id) showDetail(id, unit);
         });
 
-        // Update Analytics
         document.getElementById("count").innerText = count;
         document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
     });
@@ -215,7 +223,7 @@
         const feed = document.getElementById("v-feed");
         const frame = document.getElementById("sat-view");
         feed.style.display = "block";
-        // Fixed Google Satellite Feed
+        // Embed Google Maps Satellite dengan Koordinat Unit
         frame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&ie=UTF8&iwloc=&output=embed`;
     }
 </script>
