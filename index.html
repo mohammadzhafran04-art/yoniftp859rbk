@@ -99,8 +99,9 @@
     let currentCallsign = "";
     let watchId = null;
     let wakeLock = null;
+    let deferredPrompt; // Variabel untuk Simpan Prompt Instalasi
 
-    // REGISTER SERVICE WORKER (PWA) - Fixed Path
+    // 1. REGISTER SERVICE WORKER (PWA)
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
@@ -108,6 +109,12 @@
                 .catch(err => console.log("SW Failed", err));
         });
     }
+
+    // 2. TANGKAP EVENT INSTALASI OTOMATIS
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e; // Simpan untuk dipicu nanti
+    });
 
     async function requestWakeLock() {
         try {
@@ -137,9 +144,18 @@
         if (heading) document.getElementById("compass").style.transform = `rotate(${-heading}deg)`;
     });
 
-    document.getElementById("btnTrack").onclick = function() {
+    // 3. FUNGSI UTAMA TRACKING & AUTO INSTALL
+    document.getElementById("btnTrack").onclick = async function() {
         const callsign = document.getElementById("nama").value.trim().toUpperCase();
         if(!callsign) { showNotify("REQUIRED: CALLSIGN ID", "error"); return; }
+
+        // MUNCULKAN PROMPT INSTALASI OTOMATIS JIKA TERSEDIA
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User Response: ${outcome}`);
+            deferredPrompt = null;
+        }
 
         requestWakeLock();
         this.style.display = "none";
