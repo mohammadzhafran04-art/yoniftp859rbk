@@ -8,6 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ff00">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -66,6 +67,10 @@
 </head>
 <body>
 
+<audio id="silent-audio" loop muted>
+    <source src="https://raw.githubusercontent.com/anars/blank-audio/master/10-seconds-of-silence.mp3" type="audio/mp3">
+</audio>
+
 <div id="auth-loader">
     <div style="font-size: 24px; margin-bottom: 10px; letter-spacing: 5px;">VERIFYING_ACCESS...</div>
     <div style="width: 200px; height: 2px; background: rgba(0,255,0,0.2); position: relative; overflow: hidden;">
@@ -112,7 +117,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -129,16 +134,41 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // --- LOGIKA PENGUNCI DASHBOARD (FIXED) ---
+    let wakeLock = null;
+
+    // --- FUNGSI KEEP ALIVE (WAKE LOCK) ---
+    const requestWakeLock = async () => {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                addLog("SYSTEM_WAKE_LOCK: ACTIVE");
+                wakeLock.addEventListener('release', () => {
+                    addLog("WAKE_LOCK_RELEASED: RETRYING...");
+                    requestWakeLock();
+                });
+            }
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
+    };
+
+    // Aktivasi saat user klik pertama kali
+    document.addEventListener('click', () => {
+        const audio = document.getElementById('silent-audio');
+        if(audio.paused) {
+            audio.play();
+            requestWakeLock();
+            addLog("BG_MODE_ENGAGED: PERSISTENT");
+        }
+    }, { once: true });
+
     onAuthStateChanged(auth, (user) => {
         if (!user) {
-            // Jika tidak ada user, paksa ke login tanpa ampun
             window.location.replace("login.html");
         } else {
-            // Jika login valid, hapus loader dan aktifkan dashboard
             document.getElementById("auth-loader").style.display = "none";
             addLog("ACCESS_GRANTED: " + user.email.split('@')[0].toUpperCase());
-            startApp();
+            startApp(user);
         }
     });
 
@@ -150,7 +180,7 @@
         }
     };
 
-    function startApp() {
+    function startApp(user) {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
         }
@@ -160,11 +190,37 @@
         }, 1000);
 
         initMap();
+        startTracking(user); // Mulai pengiriman lokasi background
+    }
+
+    // --- TRACKING LOKASI BACKGROUND (watchPosition) ---
+    function startTracking(user) {
+        const userId = user.email.replace(/[.#$[\]]/g, "_");
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude, speed, accuracy } = position.coords;
+                    const updates = {
+                        latitude,
+                        longitude,
+                        speed: Math.round((speed || 0) * 3.6), // Convert m/s ke kmh
+                        accuracy: Math.round(accuracy),
+                        ts: Date.now(),
+                        status: "ONLINE"
+                    };
+                    set(ref(db, `live/${userId}`), updates);
+                },
+                (error) => {
+                    addLog("GPS_ERROR: " + error.message);
+                },
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+            );
+        }
     }
 
     let map, googleHybrid;
     function initMap() {
-        if (map) return; // Mencegah inisialisasi ganda
+        if (map) return; 
         map = L.map('map', { center: [-7.644, 111.902], zoom: 13, zoomControl: false });
         googleHybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
             maxZoom: 20,
@@ -207,9 +263,9 @@
             Object.keys(data).forEach(id => {
                 const unit = data[id];
                 const isSOS = unit.status === "EMERGENCY";
-                const isOnline = (Date.now() - unit.ts) < 15000;
+                const isOnline = (Date.now() - unit.ts) < 20000; // Toleransi 20 detik
                 count++;
-                totalSpd += unit.speed;
+                totalSpd += (unit.speed || 0);
 
                 const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
 
@@ -234,11 +290,11 @@
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <span style="font-weight:bold;">${id}</span>
-                        <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${unit.status}</span>
+                        <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${isOnline ? 'ONLINE' : 'OFFLINE'}</span>
                     </div>
                     <div class="stat-row"><span>VELOCITY</span><span>${unit.speed} KM/H</span></div>
                     <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed, 100)}%; background:var(--neon-blue)"></div></div>
-                    <div class="stat-row"><span>GPS_PRECISION</span><span>${unit.accuracy}M</span></div>
+                    <div class="stat-row"><span>GPS_PRECISION</span><span>±${unit.accuracy}M</span></div>
                     <div class="progress-bg"><div class="progress-fill" style="width:${Math.max(100-unit.accuracy, 10)}%; background:var(--neon-green)"></div></div>
                 `;
                 
