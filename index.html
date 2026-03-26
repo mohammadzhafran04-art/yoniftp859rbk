@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>UNIT MONITORING - TACTICAL V7.1</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --neon-green: #00ff00; --dark-bg: #000800; --glass-bg: rgba(5, 15, 5, 0.9); --danger: #ff0033; --cyan: #00f2ff; --warning: #ffcc00; }
@@ -37,14 +43,13 @@
         .tel-label { font-size: 8px; color: var(--cyan); display: block; }
         .tel-val { font-size: 14px; font-weight: bold; color: #fff; }
 
-        /* Loading & Notification */
+        /* Utils */
         #loader { display: none; width: 20px; height: 20px; border: 2px solid var(--neon-green); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 10px auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
         
         #status-msg { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 5px; font-size: 12px; font-weight: bold; z-index: 100; display: none; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { top: 0; opacity: 0; } to { top: 80px; opacity: 1; } }
 
-        /* Utils */
         .ping { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; display: inline-block; opacity: 0; vertical-align: middle; }
         .ping.active { animation: blink 0.5s; }
         @keyframes blink { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
@@ -102,6 +107,26 @@
     let isSOS = false;
     let currentCallsign = "";
     let watchId = null;
+    let wakeLock = null;
+
+    // REGISTER SERVICE WORKER (PWA)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+        });
+    }
+
+    // WAKE LOCK: Mencegah HP Tidur
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log("Wake Lock Aktif - CPU Terjaga");
+            }
+        } catch (err) {
+            console.log("WakeLock gagal: " + err.message);
+        }
+    }
 
     // UI Helper: Notify
     function showNotify(text, type) {
@@ -135,13 +160,15 @@
             return;
         }
 
-        // UI Loading State
+        requestWakeLock(); // Aktifkan Wake Lock saat mulai tracking
+
         this.style.display = "none";
         document.getElementById("loader").style.display = "block";
         document.getElementById("nama").disabled = true;
 
         currentCallsign = callsign;
 
+        // Watch Position dengan High Accuracy
         watchId = navigator.geolocation.watchPosition((pos) => {
             const data = {
                 latitude: pos.coords.latitude,
@@ -152,7 +179,6 @@
                 status: isSOS ? "EMERGENCY" : "ACTIVE"
             };
 
-            // Firebase Update
             set(ref(db, "live/" + currentCallsign), data)
                 .then(() => {
                     if(document.getElementById("loader").style.display === "block") {
@@ -161,12 +187,10 @@
                         document.getElementById("btnTerminate").style.display = "block";
                         showNotify("UPLINK SUCCESSFUL", "success");
                     }
-                })
-                .catch(() => showNotify("FIREBASE CONNECTION ERROR", "error"));
+                });
 
             onDisconnect(ref(db, "live/" + currentCallsign)).remove();
 
-            // UI Telemetry Update
             document.getElementById("lat").innerText = data.latitude.toFixed(4);
             document.getElementById("lon").innerText = data.longitude.toFixed(4);
             document.getElementById("spd").innerText = data.speed + " kmh";
@@ -176,11 +200,12 @@
             hb.classList.add("active"); setTimeout(() => hb.classList.remove("active"), 400);
 
         }, (err) => {
-            document.getElementById("loader").style.display = "none";
-            document.getElementById("btnTrack").style.display = "block";
-            document.getElementById("nama").disabled = false;
             showNotify("GPS ERROR: " + err.message, "error");
-        }, { enableHighAccuracy: true });
+        }, { 
+            enableHighAccuracy: true, 
+            timeout: 10000, 
+            maximumAge: 0 
+        });
     };
 
     // SOS Toggle
@@ -197,18 +222,13 @@
         }
     };
 
-    // Terminate Logic
+    // Terminate Connection
     document.getElementById("btnTerminate").onclick = async function() {
         if(confirm("TERMINATE ALL UPLINKS?")) {
             if (watchId) navigator.geolocation.clearWatch(watchId);
-            
-            // Hapus data dari Firebase
-            if (currentCallsign) {
-                await remove(ref(db, "live/" + currentCallsign));
-            }
-
-            // Reset UI
-            location.reload(); // Cara tercepat untuk mereset seluruh state tactical
+            if (wakeLock) wakeLock.release();
+            if (currentCallsign) await remove(ref(db, "live/" + currentCallsign));
+            location.reload();
         }
     };
 </script>
