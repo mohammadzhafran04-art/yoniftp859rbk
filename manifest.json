@@ -1,0 +1,16 @@
+{
+  "name": "HQ COMMAND CENTER",
+  "short_name": "HQ-859",
+  "description": "Sistem Monitoring Lokasi Satuan YONIF 859/RBK",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#010a01",
+  "theme_color": "#00ff00",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2092/2092203.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
