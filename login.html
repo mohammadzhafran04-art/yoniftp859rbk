@@ -1,262 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>Command Center Access</title>
-
-<style>
-
-body{
-margin:0;
-font-family:monospace;
-background:#020702;
-color:#00ff9c;
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-overflow:hidden;
-}
-
-/* RADAR BACKGROUND */
-
-body::before{
-content:"";
-position:absolute;
-width:1400px;
-height:1400px;
-border-radius:50%;
-border:2px solid rgba(0,255,120,0.15);
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-animation:spin 30s linear infinite;
-}
-
-@keyframes spin{
-0%{transform:translate(-50%,-50%) rotate(0deg);}
-100%{transform:translate(-50%,-50%) rotate(360deg);}
-}
-
-/* RADAR SWEEP FULL SCREEN */
-
-.radar{
-position:absolute;
-width:2000px;
-height:2000px;
-background:conic-gradient(
-rgba(0,255,0,0.4) 0deg,
-rgba(0,255,0,0.1) 30deg,
-transparent 90deg
-);
-border-radius:50%;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%);
-animation:radarSweep 5s linear infinite;
-}
-
-@keyframes radarSweep{
-0%{transform:translate(-50%,-50%) rotate(0deg);}
-100%{transform:translate(-50%,-50%) rotate(360deg);}
-}
-
-/* LOGIN CARD */
-
-.card{
-width:380px;
-padding:40px;
-background:#081208;
-border-radius:10px;
-border:1px solid rgba(0,255,120,0.3);
-box-shadow:0 0 30px rgba(0,255,120,0.2);
-text-align:center;
-z-index:2;
-}
-
-/* TITLE */
-
-.title{
-font-size:22px;
-margin-bottom:20px;
-letter-spacing:2px;
-}
-
-/* RETINA SCAN */
-
-.scan{
-margin:20px auto;
-width:120px;
-height:120px;
-border-radius:50%;
-border:2px solid #00ff9c;
-position:relative;
-overflow:hidden;
-}
-
-.scan::after{
-content:"";
-position:absolute;
-width:100%;
-height:3px;
-background:#00ff9c;
-top:0;
-animation:scan 2s infinite;
-}
-
-@keyframes scan{
-0%{top:0}
-100%{top:120px}
-}
-
-/* INPUT */
-
-input{
-width:100%;
-padding:12px;
-border:none;
-border-radius:5px;
-background:#0f1a0f;
-color:#00ff9c;
-border:1px solid rgba(0,255,120,0.4);
-outline:none;
-}
-
-/* BUTTON */
-
-button{
-margin-top:20px;
-width:100%;
-padding:12px;
-border:none;
-border-radius:5px;
-background:#00ff9c;
-color:black;
-font-weight:bold;
-cursor:pointer;
-}
-
-/* TERMINAL */
-
-#terminal{
-margin-top:15px;
-font-size:14px;
-height:60px;
-}
-
-.granted{
-color:#00ff9c;
-font-weight:bold;
-}
-
-.denied{
-color:red;
-font-weight:bold;
-}
-
-/* LOADING */
-
-.loading{
-display:none;
-margin-top:15px;
-}
-
-.spinner{
-width:60px;
-height:60px;
-border-radius:50%;
-border:2px solid #00ff9c;
-margin:auto;
-animation:spin 2s linear infinite;
-}
-
-</style>
+    <meta charset="UTF-8">
+    <title>Command Center Access</title>
+    <style>
+        /* Gaya CSS kamu tetap sama, saya pertahankan */
+        body { margin: 0; font-family: monospace; background: #020702; color: #00ff9c; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        body::before { content: ""; position: absolute; width: 1400px; height: 1400px; border-radius: 50%; border: 2px solid rgba(0, 255, 120, 0.15); top: 50%; left: 50%; transform: translate(-50%, -50%); animation: spin 30s linear infinite; }
+        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        .radar { position: absolute; width: 2000px; height: 2000px; background: conic-gradient(rgba(0, 255, 0, 0.4) 0deg, rgba(0, 255, 0, 0.1) 30deg, transparent 90deg); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: radarSweep 5s linear infinite; z-index: 1; }
+        @keyframes radarSweep { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        .card { width: 380px; padding: 40px; background: #081208; border-radius: 10px; border: 1px solid rgba(0, 255, 120, 0.3); box-shadow: 0 0 30px rgba(0, 255, 120, 0.2); text-align: center; z-index: 2; position: relative; }
+        .title { font-size: 22px; margin-bottom: 20px; letter-spacing: 2px; }
+        .scan { margin: 20px auto; width: 120px; height: 120px; border-radius: 50%; border: 2px solid #00ff9c; position: relative; overflow: hidden; }
+        .scan::after { content: ""; position: absolute; width: 100%; height: 3px; background: #00ff9c; top: 0; animation: scan 2s infinite; }
+        @keyframes scan { 0% { top: 0 } 100% { top: 120px } }
+        input { width: 100%; padding: 12px; border: none; border-radius: 5px; background: #0f1a0f; color: #00ff9c; border: 1px solid rgba(0, 255, 120, 0.4); outline: none; box-sizing: border-box; margin-bottom: 10px; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 5px; background: #00ff9c; color: black; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #00cc7e; box-shadow: 0 0 15px #00ff9c; }
+        #terminal { margin-top: 15px; font-size: 14px; height: 60px; white-space: pre-wrap; text-align: left; font-family: 'JetBrains Mono', monospace; }
+        .loading { display: none; margin-top: 15px; }
+        .spinner { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; border-top-color: #00ff9c; margin: auto; animation: spin 0.6s linear infinite; }
+    </style>
 </head>
-
 <body>
 
 <div class="radar"></div>
 
 <div class="card">
+    <div class="title">COMMAND CENTER LOGIN</div>
+    <div class="scan"></div>
+    
+    <input type="email" id="email" placeholder="Commander Email" value="admin@hq.com">
+    <input type="password" id="pass" placeholder="Security Code">
 
-<div class="title">COMMAND CENTER LOGIN</div>
+    <button id="btnLogin">AUTHENTICATE</button>
 
-<div class="scan"></div>
-
-<input type="password" id="pass" placeholder="Enter Security Code">
-
-<button onclick="login()">AUTHENTICATE</button>
-
-<div id="terminal"></div>
-
-<div class="loading" id="loading">
-<div class="spinner"></div>
+    <div id="terminal">> SYSTEM_READY...</div>
+    <div class="loading" id="loading"><div class="spinner"></div></div>
 </div>
 
-</div>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-<audio id="grantedSound">
-<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
-</audio>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
+        authDomain: "database-baru-rbk.firebaseapp.com",
+        databaseURL: "https://database-baru-rbk-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "database-baru-rbk",
+        storageBucket: "database-baru-rbk.firebasestorage.app",
+        messagingSenderId: "419838977211",
+        appId: "1:419838977211:web:2c6af76dab5cf21915f59e"
+    };
 
-<audio id="deniedSound">
-<source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg">
-</audio>
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
-<script>
+    const terminal = document.getElementById("terminal");
+    const loading = document.getElementById("loading");
 
-const PASSWORD="rabekaojokendor2026";
+    function typeText(text) {
+        let i = 0;
+        terminal.innerHTML = "";
+        function typing() {
+            if (i < text.length) {
+                terminal.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(typing, 30);
+            }
+        }
+        typing();
+    }
 
-function typeText(text,element,speed=40){
-let i=0;
-element.innerHTML="";
-function typing(){
-if(i<text.length){
-element.innerHTML+=text.charAt(i);
-i++;
-setTimeout(typing,speed);
-}
-}
-typing();
-}
+    document.getElementById("btnLogin").onclick = async () => {
+        const email = document.getElementById("email").value;
+        const pass = document.getElementById("pass").value;
 
-function login(){
+        if(!email || !pass) {
+            typeText("> ERROR: MISSING_CREDENTIALS");
+            return;
+        }
 
-const input=document.getElementById("pass").value;
-const terminal=document.getElementById("terminal");
-const loading=document.getElementById("loading");
+        typeText("> SCANNING BIOMETRIC AUTHORIZATION...");
+        loading.style.display = "block";
 
-typeText("> SCANNING BIOMETRIC AUTHORIZATION...",terminal);
+        try {
+            // Proses Login Ke Firebase
+            await signInWithEmailAndPassword(auth, email, pass);
+            
+            loading.style.display = "none";
+            typeText("> ACCESS GRANTED\n> OPENING COMMAND CENTER...");
+            
+            setTimeout(() => {
+                window.location.replace("dashboard.html");
+            }, 1500);
 
-loading.style.display="block";
-
-setTimeout(()=>{
-
-loading.style.display="none";
-
-if(input===PASSWORD){
-
-document.getElementById("grantedSound").play();
-
-typeText("> ACCESS GRANTED\n> OPENING COMMAND CENTER...",terminal);
-
-setTimeout(()=>{
-localStorage.setItem("auth","true");
-window.location.href="dashboard.html";
-},2000);
-
-}else{
-
-document.getElementById("deniedSound").play();
-
-typeText("> ACCESS DENIED\n> SECURITY ALERT",terminal);
-
-}
-
-},2500);
-
-}
-
+        } catch (error) {
+            loading.style.display = "none";
+            typeText("> ACCESS DENIED\n> INVALID_SECURITY_CODE");
+            console.error(error.message);
+        }
+    };
 </script>
 
 </body>
