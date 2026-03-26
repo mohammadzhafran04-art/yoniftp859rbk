@@ -152,6 +152,14 @@
         }
     };
 
+    // --- SERVICE WORKER KEEP-ALIVE PING ---
+    const swKeepAlive = () => {
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage('keepAlive');
+            addLog("SW_KEEP_ALIVE: PING_SENT");
+        }
+    };
+
     // Aktivasi saat user klik pertama kali
     document.addEventListener('click', () => {
         const audio = document.getElementById('silent-audio');
@@ -182,7 +190,11 @@
 
     function startApp(user) {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                addLog("SW_REGISTERED: SUCCESS");
+                // Kirim ping pertama setelah registrasi berhasil
+                setInterval(swKeepAlive, 45000); 
+            }).catch(err => console.log(err));
         }
 
         setInterval(() => { 
@@ -190,10 +202,9 @@
         }, 1000);
 
         initMap();
-        startTracking(user); // Mulai pengiriman lokasi background
+        startTracking(user); 
     }
 
-    // --- TRACKING LOKASI BACKGROUND (watchPosition) ---
     function startTracking(user) {
         const userId = user.email.replace(/[.#$[\]]/g, "_");
         if ("geolocation" in navigator) {
@@ -203,7 +214,7 @@
                     const updates = {
                         latitude,
                         longitude,
-                        speed: Math.round((speed || 0) * 3.6), // Convert m/s ke kmh
+                        speed: Math.round((speed || 0) * 3.6), 
                         accuracy: Math.round(accuracy),
                         ts: Date.now(),
                         status: "ONLINE"
@@ -263,7 +274,7 @@
             Object.keys(data).forEach(id => {
                 const unit = data[id];
                 const isSOS = unit.status === "EMERGENCY";
-                const isOnline = (Date.now() - unit.ts) < 20000; // Toleransi 20 detik
+                const isOnline = (Date.now() - unit.ts) < 20000; 
                 count++;
                 totalSpd += (unit.speed || 0);
 
