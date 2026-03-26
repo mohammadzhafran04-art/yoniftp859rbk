@@ -99,9 +99,9 @@
     let currentCallsign = "";
     let watchId = null;
     let wakeLock = null;
-    let deferredPrompt; // Variabel untuk Simpan Prompt Instalasi
+    let deferredPrompt;
 
-    // 1. REGISTER SERVICE WORKER (PWA)
+    // 1. REGISTER SERVICE WORKER & NOTIFICATION
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
@@ -110,18 +110,33 @@
         });
     }
 
-    // 2. TANGKAP EVENT INSTALASI OTOMATIS
+    // 2. CAPTURE INSTALL PROMPT
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
-        deferredPrompt = e; // Simpan untuk dipicu nanti
+        deferredPrompt = e;
     });
 
+    // 3. WAKE LOCK & NOTIF LOGIC
     async function requestWakeLock() {
         try {
             if ('wakeLock' in navigator) {
                 wakeLock = await navigator.wakeLock.request('screen');
             }
         } catch (err) { console.log("WakeLock Error"); }
+    }
+
+    async function updateLiveNotification() {
+        if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+            const registration = await navigator.serviceWorker.ready;
+            registration.showNotification("TAC-UNIT ACTIVE", {
+                body: `CALLSIGN: ${currentCallsign} | POSITION TRACKING ON`,
+                icon: "https://cdn-icons-png.flaticon.com/512/2092/2092203.png",
+                badge: "https://cdn-icons-png.flaticon.com/512/2092/2092203.png",
+                tag: "tracking-status",
+                ongoing: true,
+                silent: true
+            });
+        }
     }
 
     function showNotify(text, type) {
@@ -132,6 +147,7 @@
         setTimeout(() => msg.style.display = "none", 3000);
     }
 
+    // BATTERY & COMPASS
     if (navigator.getBattery) {
         navigator.getBattery().then(b => {
             const up = () => document.getElementById("pwr").innerText = Math.round(b.level * 100) + "%";
@@ -144,16 +160,16 @@
         if (heading) document.getElementById("compass").style.transform = `rotate(${-heading}deg)`;
     });
 
-    // 3. FUNGSI UTAMA TRACKING & AUTO INSTALL
+    // 4. MAIN ACTION: INITIATE UPLINK
     document.getElementById("btnTrack").onclick = async function() {
         const callsign = document.getElementById("nama").value.trim().toUpperCase();
         if(!callsign) { showNotify("REQUIRED: CALLSIGN ID", "error"); return; }
 
-        // MUNCULKAN PROMPT INSTALASI OTOMATIS JIKA TERSEDIA
+        // Minta Izin Notifikasi & Tampilkan Prompt Install
+        if ('Notification' in window) await Notification.requestPermission();
+        
         if (deferredPrompt) {
             deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User Response: ${outcome}`);
             deferredPrompt = null;
         }
 
@@ -180,6 +196,9 @@
                     document.getElementById("btnTerminate").style.display = "block";
                     showNotify("UPLINK SUCCESSFUL", "success");
                 }
+                updateLiveNotification();
+                // Getar pelan sebagai konfirmasi data terkirim
+                if ('vibrate' in navigator) navigator.vibrate(50);
             });
 
             onDisconnect(ref(db, "live/" + currentCallsign)).remove();
@@ -203,6 +222,7 @@
         this.innerText = isSOS ? "CANCEL SOS" : "SEND SOS BEACON";
         if (currentCallsign) {
             update(ref(db, "live/" + currentCallsign), { status: isSOS ? "EMERGENCY" : "ACTIVE", ts: Date.now() });
+            if (isSOS && 'vibrate' in navigator) navigator.vibrate([200, 100, 200]);
         }
     };
 
