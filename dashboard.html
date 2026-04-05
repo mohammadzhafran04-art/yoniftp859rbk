@@ -18,7 +18,7 @@
         
         /* --- SMOOTH MOVEMENT ANIMATION --- */
         .leaflet-marker-icon {
-            transition: transform 3s linear !important; /* Meluncur selama 3 detik sesuai interval HP */
+            transition: transform 3s linear !important; 
         }
 
         .unit-dot {
@@ -57,8 +57,24 @@
 
         .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; transition: 0.3s; background: rgba(0,40,0,0.3); position: relative; border-radius: 4px; }
         .unit-card:hover { background: rgba(0,242,255,0.1); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,242,255,0.2); }
-        .unit-card.sos { border-color: var(--danger); animation: danger-glow 1s infinite alternate; }
-        @keyframes danger-glow { from { box-shadow: 0 0 5px var(--danger); } to { box-shadow: 0 0 20px var(--danger); } }
+        
+        /* Tombol Logout Per Unit */
+        .btn-remote-logout {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            font-family: 'JetBrains Mono';
+            font-size: 8px;
+            padding: 2px 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .btn-remote-logout:hover {
+            background: var(--danger);
+            color: #000;
+        }
 
         .stat-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; font-family: 'JetBrains Mono'; }
         .progress-bg { background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
@@ -130,7 +146,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -227,6 +243,15 @@
         log.prepend(entry);
     }
 
+    // Fungsi Remote Logout untuk Admin
+    window.remoteLogoutUnit = function(id) {
+        if(confirm(`TERMINATE UPLINK FOR ${id}? Unit will be logged out automatically.`)) {
+            remove(ref(db, `live/${id}`)).then(() => {
+                addLog(`REMOTE_TERMINATION_SENT: ${id}`);
+            });
+        }
+    };
+
     function listenToFirebase() {
         onValue(ref(db, "live"), snap => {
             const data = snap.val() || {};
@@ -235,7 +260,6 @@
             let totalSpd = 0;
             let count = 0;
 
-            // Bersihkan marker yang datanya sudah hilang
             Object.keys(markers).forEach(id => {
                 if(!data[id]) {
                     map.removeLayer(markers[id]);
@@ -248,14 +272,12 @@
 
             Object.keys(data).forEach(id => {
                 const unit = data[id];
-                const isSOS = unit.status === "EMERGENCY";
                 const isOnline = (Date.now() - unit.ts) < 20000; 
                 count++;
                 totalSpd += (unit.speed || 0);
 
-                const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
+                const color = isOnline ? '#00ff00' : '#888';
 
-                // Custom Smooth Icon
                 const customIcon = L.divIcon({
                     className: 'custom-icon',
                     html: `<div class="unit-dot" style="background:${color};"></div>`,
@@ -264,31 +286,26 @@
                 });
 
                 if(!markers[id]) {
-                    // Gunakan L.marker agar bisa di-animasi via CSS
-                    markers[id] = L.marker([unit.latitude, unit.longitude], {
-                        icon: customIcon
-                    }).addTo(map);
-                    
-                    // Lingkaran radar (tetap pakai circleMarker agar animasinya konsisten)
+                    markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon }).addTo(map);
                     pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
                         radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
                     }).addTo(map);
-                    
                     addLog(`CONN_ESTABLISHED: ${id}`);
                 } else {
-                    // Berpindah halus berkat CSS transition di .leaflet-marker-icon
                     markers[id].setLatLng([unit.latitude, unit.longitude]);
                     markers[id].setIcon(customIcon);
-                    
                     pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
                     pulseCircles[id].setStyle({ color: color });
                 }
 
                 const card = document.createElement("div");
-                card.className = `unit-card ${isSOS ? 'sos' : ''}`;
+                card.className = `unit-card`;
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-weight:bold;">${id}</span>
+                        <div style="display:flex; align-items:center;">
+                            <span style="font-weight:bold; font-size:11px;">${id}</span>
+                            <button class="btn-remote-logout" onclick="event.stopPropagation(); remoteLogoutUnit('${id}')">LOGOUT</button>
+                        </div>
                         <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${isOnline ? 'ONLINE' : 'OFFLINE'}</span>
                     </div>
                     <div class="stat-row"><span>VELOCITY</span><span>${unit.speed} KM/H</span></div>
