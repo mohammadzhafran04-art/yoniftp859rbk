@@ -7,31 +7,73 @@
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ff00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
         :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --panel-bg: rgba(0, 10, 0, 0.9); --danger: #ff1144; }
         
-        .leaflet-marker-icon { transition: transform 3s linear !important; }
-        .unit-dot { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        /* --- SMOOTH MOVEMENT ANIMATION --- */
+        .leaflet-marker-icon {
+            transition: transform 3s linear !important; 
+        }
+
+        .unit-dot {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        #auth-loader { 
+            position: fixed; top:0; left:0; width:100%; height:100%; 
+            background:#000; z-index: 9999; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+            font-family: 'Orbitron', sans-serif; color: var(--neon-green);
+        }
 
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
-        .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); z-index: 1000; position: relative; }
+        
+        .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); box-shadow: 0 0 20px rgba(0,255,0,0.3); z-index: 1000; position: relative; }
         .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); gap: 0; background: #000; }
         
-        @media (max-width: 1024px) { .main-container { grid-template-columns: 1fr; grid-template-rows: 200px 1fr 200px; } }
+        @media (max-width: 1024px) {
+            .main-container { grid-template-columns: 1fr; grid-template-rows: 200px 1fr 200px; }
+            .panel { overflow-y: scroll; }
+        }
 
-        .panel { background: var(--panel-bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); }
+        .panel { background: var(--panel-bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
         #map { background: #000; height: 100%; width: 100%; }
         
-        @keyframes pulse-radar { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3); opacity: 0; } }
+        @keyframes pulse-radar {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(3); opacity: 0; }
+        }
         .radar-icon { border-radius: 50%; animation: pulse-radar 2s infinite; }
 
-        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; background: rgba(0,40,0,0.3); border-radius: 4px; }
-        .unit-card:hover { background: rgba(0,242,255,0.1); border-color: var(--neon-blue); }
-        .btn-remote-logout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-family: 'JetBrains Mono'; font-size: 9px; padding: 2px 8px; cursor: pointer; font-weight: bold; }
-        .btn-remote-logout:hover { background: var(--danger); color: #000; }
+        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; transition: 0.3s; background: rgba(0,40,0,0.3); position: relative; border-radius: 4px; }
+        .unit-card:hover { background: rgba(0,242,255,0.1); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,242,255,0.2); }
+        
+        .btn-remote-logout {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            font-family: 'JetBrains Mono';
+            font-size: 9px;
+            padding: 2px 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .btn-remote-logout:hover {
+            background: var(--danger);
+            color: #000;
+        }
 
         .stat-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; font-family: 'JetBrains Mono'; }
         .progress-bg { background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
@@ -39,15 +81,37 @@
 
         #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.8); margin-bottom: 15px; }
         .tag { font-size: 10px; color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 12px; display: block; font-weight: bold; border-left: 3px solid var(--neon-blue); padding-left: 8px; }
+
+        .visual-feed { width: 100%; height: 200px; border: 1px solid #444; border-radius: 8px; overflow: hidden; }
+        iframe { width: 100%; height: 100%; border: none; }
+
         .analytics { margin-top: auto; padding: 15px; background: rgba(0,20,0,0.5); border-top: 1px solid var(--neon-green); font-family: 'JetBrains Mono'; font-size: 10px; }
-        #auth-loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
+
+        #btnLogoutTop { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-family: 'Orbitron'; font-size: 10px; padding: 5px 15px; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
+        #btnLogoutTop:hover { background: var(--danger); color: #fff; }
+        
+        @keyframes load-bar { from { left: -100%; } to { left: 100%; } }
     </style>
 </head>
 <body>
 
+<audio id="silent-audio" loop muted>
+    <source src="https://raw.githubusercontent.com/anars/blank-audio/master/10-seconds-of-silence.mp3" type="audio/mp3">
+</audio>
+
+<div id="auth-loader">
+    <div style="font-size: 24px; margin-bottom: 10px; letter-spacing: 5px;">VERIFYING_ACCESS...</div>
+    <div style="width: 200px; height: 2px; background: rgba(0,255,0,0.2); position: relative; overflow: hidden;">
+        <div style="position: absolute; width: 50%; height: 100%; background: var(--neon-green); animation: load-bar 1s infinite;"></div>
+    </div>
+</div>
+
 <div class="header">
     <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V8.0</span></div>
-    <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px; color: #fff;">00:00:00</div>
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px; color: #fff;">00:00:00</div>
+        <button id="btnLogoutTop">TERMINATE_SESSION</button>
+    </div>
     <div id="uplink-stat" style="font-size: 10px; color: var(--neon-green); border: 1px solid var(--neon-green); padding: 4px 10px;">SYSTEM_STABLE</div>
 </div>
 
@@ -55,20 +119,33 @@
     <div class="panel">
         <span class="tag">OPERATIONAL_ASSETS</span>
         <div id="unit-list"></div>
-        <div class="analytics">TOTAL ASSETS: <span id="count">0</span> | AVG VELOCITY: <span id="avg-spd">0</span> KMH</div>
+        <div class="analytics">
+            TOTAL ASSETS: <span id="count">0</span> | AVG VELOCITY: <span id="avg-spd">0</span> KMH
+        </div>
     </div>
+
     <div id="map"></div>
+
     <div class="panel">
         <span class="tag">UNIT_SPECIFICATIONS</span>
-        <div id="detail-box">WAITING_FOR_DATA...</div>
-        <span class="tag">NETWORK_LOGS</span>
-        <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#00ff00; height: 200px; overflow-y:auto;"></div>
+        <div id="detail-box">READY_FOR_UPLINK...</div>
+        
+        <span class="tag">REALTIME_SATELLITE</span>
+        <div class="visual-feed" id="v-feed" style="display:none;">
+            <iframe id="sat-view"></iframe>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <span class="tag">NETWORK_TRAFFIC</span>
+            <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#00ff00; height: 120px; overflow-y:auto; opacity: 0.7;"></div>
+        </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
@@ -82,11 +159,44 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app);
 
-    setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
+    let wakeLock = null;
 
-    let map = L.map('map', { center: [-7.644, 135.74], zoom: 13, zoomControl: false });
-    L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] }).addTo(map);
+    const requestWakeLock = async () => {
+        try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+    };
+
+    document.addEventListener('click', () => {
+        const audio = document.getElementById('silent-audio');
+        if(audio.paused) { audio.play(); requestWakeLock(); }
+    }, { once: true });
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) { window.location.replace("login.html"); } 
+        else { document.getElementById("auth-loader").style.display = "none"; startApp(user); }
+    });
+
+    document.getElementById("btnLogoutTop").onclick = () => {
+        if(confirm("TERMINATE COMMAND SESSION?")) {
+            signOut(auth).then(() => window.location.replace("login.html"));
+        }
+    };
+
+    function startApp(user) {
+        setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
+        initMap();
+    }
+
+    let map;
+    function initMap() {
+        if (map) return; 
+        map = L.map('map', { center: [-0.73, 135.74], zoom: 13, zoomControl: false });
+        L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+        }).addTo(map);
+        listenToFirebase();
+    }
 
     let markers = {};
     let pulseCircles = {};
@@ -94,6 +204,7 @@
 
     function addLog(msg) {
         const log = document.getElementById("logs");
+        if (!log) return;
         const entry = document.createElement("div");
         entry.innerText = `> [${new Date().toLocaleTimeString()}] ${msg}`;
         log.prepend(entry);
@@ -101,92 +212,105 @@
 
     window.remoteLogoutUnit = function(id) {
         if(confirm(`TERMINATE UPLINK FOR ${id}?`)) {
-            remove(ref(db, `live/${id}`)).then(() => addLog(`REMOTE_KILL_SENT: ${id}`));
+            remove(ref(db, `live/${id}`)).then(() => {
+                addLog(`REMOTE_KILL_SENT: ${id}`);
+            });
         }
     };
 
-    onValue(ref(db, "live"), snap => {
-        const data = snap.val() || {};
-        const list = document.getElementById("unit-list");
-        list.innerHTML = "";
-        let totalSpd = 0, count = 0;
+    function listenToFirebase() {
+        onValue(ref(db, "live"), snap => {
+            const data = snap.val() || {};
+            const list = document.getElementById("unit-list");
+            list.innerHTML = "";
+            let totalSpd = 0, count = 0;
 
-        // Cleanup
-        Object.keys(markers).forEach(id => {
-            if(!data[id]) {
-                map.removeLayer(markers[id]);
-                map.removeLayer(pulseCircles[id]);
-                delete markers[id];
-                delete pulseCircles[id];
-                addLog(`DISCONNECTED: ${id}`);
-            }
-        });
-
-        Object.keys(data).forEach(id => {
-            const unit = data[id];
-            if (!unit.ts) return;
-
-            const isOnline = (Date.now() - unit.ts) < 30000;
-            const color = isOnline ? '#00ff00' : '#ff1144';
-            count++;
-            totalSpd += (unit.speed || 0);
-
-            // Update Map if coordinates exist
-            if (unit.latitude && unit.longitude) {
-                const customIcon = L.divIcon({
-                    className: 'custom-icon',
-                    html: `<div class="unit-dot" style="background:${color};"></div>`,
-                    iconSize: [14, 14], iconAnchor: [7, 7]
-                });
-
-                if(!markers[id]) {
-                    markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon }).addTo(map);
-                    pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], { radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon' }).addTo(map);
-                    addLog(`UPLINK_ESTABLISHED: ${id}`);
-                } else {
-                    markers[id].setLatLng([unit.latitude, unit.longitude]);
-                    markers[id].setIcon(customIcon);
-                    pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
-                    pulseCircles[id].setStyle({ color: color });
+            Object.keys(markers).forEach(id => {
+                if(!data[id]) {
+                    map.removeLayer(markers[id]);
+                    map.removeLayer(pulseCircles[id]);
+                    delete markers[id];
+                    delete pulseCircles[id];
+                    addLog(`CONN_LOST: ${id}`);
                 }
-            }
+            });
 
-            // Add to List
-            const card = document.createElement("div");
-            card.className = "unit-card";
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:bold; font-size:11px;">${id}</span>
-                    <button class="btn-remote-logout" onclick="event.stopPropagation(); remoteLogoutUnit('${id}')">LOGOUT</button>
-                </div>
-                <div class="stat-row"><span>VELOCITY</span><span>${unit.speed || 0} KMH</span></div>
-                <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed || 0, 100)}%; background:var(--neon-blue)"></div></div>
-                <div class="stat-row"><span>STATUS</span><span style="color:${color}">${isOnline ? (unit.status || 'ONLINE') : 'OFFLINE'}</span></div>
-            `;
-            card.onclick = () => {
-                if (unit.latitude) {
-                    selectedId = id;
-                    map.flyTo([unit.latitude, unit.longitude], 18);
-                    showDetail(id, unit);
+            Object.keys(data).forEach(id => {
+                const unit = data[id];
+                if (!unit.ts) return;
+
+                const isOnline = (Date.now() - unit.ts) < 30000; 
+                count++;
+                totalSpd += (unit.speed || 0);
+                const color = isOnline ? '#00ff00' : '#888';
+
+                // Hanya gambar marker jika ada koordinat
+                if (unit.latitude && unit.longitude) {
+                    const customIcon = L.divIcon({
+                        className: 'custom-icon',
+                        html: `<div class="unit-dot" style="background:${color};"></div>`,
+                        iconSize: [14, 14], iconAnchor: [7, 7]
+                    });
+
+                    if(!markers[id]) {
+                        markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon }).addTo(map);
+                        pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
+                            radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
+                        }).addTo(map);
+                        addLog(`UPLINK_ESTABLISHED: ${id}`);
+                    } else {
+                        markers[id].setLatLng([unit.latitude, unit.longitude]);
+                        markers[id].setIcon(customIcon);
+                        pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
+                        pulseCircles[id].setStyle({ color: color });
+                    }
                 }
-            };
-            list.appendChild(card);
-        });
 
-        document.getElementById("count").innerText = count;
-        document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
-    });
+                const card = document.createElement("div");
+                card.className = `unit-card`;
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="display:flex; align-items:center;">
+                            <span style="font-weight:bold; font-size:11px;">${id}</span>
+                            <button class="btn-remote-logout" onclick="event.stopPropagation(); remoteLogoutUnit('${id}')">LOGOUT</button>
+                        </div>
+                        <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+                    </div>
+                    <div class="stat-row"><span>VELOCITY</span><span>${unit.speed || 0} KMH</span></div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed || 0, 100)}%; background:var(--neon-blue)"></div></div>
+                    <div class="stat-row"><span>GPS_ACC</span><span>±${unit.accuracy || 0}M</span></div>
+                `;
+                
+                card.onclick = () => {
+                    if (unit.latitude) {
+                        selectedId = id;
+                        map.flyTo([unit.latitude, unit.longitude], 18);
+                        showDetail(id, unit);
+                    }
+                };
+                list.appendChild(card);
+                if(selectedId === id) showDetail(id, unit);
+            });
+
+            document.getElementById("count").innerText = count;
+            document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
+        });
+    }
 
     function showDetail(id, unit) {
         document.getElementById("detail-box").innerHTML = `
-            <div style="color:var(--neon-blue); font-weight:bold; margin-bottom:10px;">ID: ${id}</div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                <div>LAT: ${unit.latitude.toFixed(6)}</div>
-                <div>LON: ${unit.longitude.toFixed(6)}</div>
-                <div>ACC: ±${unit.accuracy}M</div>
-                <div>BAT: ${unit.battery}%</div>
+            <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:10px;">ID: ${id}</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div>LAT: <span style="color:#fff">${unit.latitude.toFixed(6)}</span></div>
+                <div>LON: <span style="color:#fff">${unit.longitude.toFixed(6)}</span></div>
+                <div>SPD: <span style="color:#fff">${unit.speed} KMH</span></div>
+                <div>BAT: <span style="color:#fff">${unit.battery}%</span></div>
             </div>
         `;
+        const feed = document.getElementById("v-feed");
+        const frame = document.getElementById("sat-view");
+        feed.style.display = "block";
+        frame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&ie=UTF8&iwloc=&output=embed`;
     }
 </script>
 </body>
