@@ -16,6 +16,19 @@
     <style>
         :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --panel-bg: rgba(0, 10, 0, 0.9); --danger: #ff1144; }
         
+        /* --- SMOOTH MOVEMENT ANIMATION --- */
+        .leaflet-marker-icon {
+            transition: transform 3s linear !important; /* Meluncur selama 3 detik sesuai interval HP */
+        }
+
+        .unit-dot {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
         #auth-loader { 
             position: fixed; top:0; left:0; width:100%; height:100%; 
             background:#000; z-index: 9999; display: flex; 
@@ -136,23 +149,15 @@
 
     let wakeLock = null;
 
-    // --- FUNGSI KEEP ALIVE (WAKE LOCK) ---
     const requestWakeLock = async () => {
         try {
             if ('wakeLock' in navigator) {
                 wakeLock = await navigator.wakeLock.request('screen');
                 addLog("SYSTEM_WAKE_LOCK: ACTIVE");
-                wakeLock.addEventListener('release', () => {
-                    addLog("WAKE_LOCK_RELEASED: RETRYING...");
-                    requestWakeLock();
-                });
             }
-        } catch (err) {
-            console.error(`${err.name}, ${err.message}`);
-        }
+        } catch (err) { console.error(err); }
     };
 
-    // --- SERVICE WORKER KEEP-ALIVE PING ---
     const swKeepAlive = () => {
         if (navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage('keepAlive');
@@ -160,7 +165,6 @@
         }
     };
 
-    // Aktivasi saat user klik pertama kali
     document.addEventListener('click', () => {
         const audio = document.getElementById('silent-audio');
         if(audio.paused) {
@@ -191,42 +195,13 @@
     function startApp(user) {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(reg => {
-                addLog("SW_REGISTERED: SUCCESS");
-                // Kirim ping pertama setelah registrasi berhasil
                 setInterval(swKeepAlive, 45000); 
-            }).catch(err => console.log(err));
+            });
         }
-
         setInterval(() => { 
             document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); 
         }, 1000);
-
         initMap();
-        startTracking(user); 
-    }
-
-    function startTracking(user) {
-        const userId = user.email.replace(/[.#$[\]]/g, "_");
-        if ("geolocation" in navigator) {
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    const { latitude, longitude, speed, accuracy } = position.coords;
-                    const updates = {
-                        latitude,
-                        longitude,
-                        speed: Math.round((speed || 0) * 3.6), 
-                        accuracy: Math.round(accuracy),
-                        ts: Date.now(),
-                        status: "ONLINE"
-                    };
-                    set(ref(db, `live/${userId}`), updates);
-                },
-                (error) => {
-                    addLog("GPS_ERROR: " + error.message);
-                },
-                { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-            );
-        }
     }
 
     let map, googleHybrid;
@@ -237,7 +212,6 @@
             maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
-        
         listenToFirebase();
     }
 
@@ -261,6 +235,7 @@
             let totalSpd = 0;
             let count = 0;
 
+            // Bersihkan marker yang datanya sudah hilang
             Object.keys(markers).forEach(id => {
                 if(!data[id]) {
                     map.removeLayer(markers[id]);
@@ -280,18 +255,31 @@
 
                 const color = isSOS ? '#ff0000' : (isOnline ? '#00ff00' : '#888');
 
+                // Custom Smooth Icon
+                const customIcon = L.divIcon({
+                    className: 'custom-icon',
+                    html: `<div class="unit-dot" style="background:${color};"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                });
+
                 if(!markers[id]) {
-                    markers[id] = L.circleMarker([unit.latitude, unit.longitude], {
-                        radius: 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 1
+                    // Gunakan L.marker agar bisa di-animasi via CSS
+                    markers[id] = L.marker([unit.latitude, unit.longitude], {
+                        icon: customIcon
                     }).addTo(map);
                     
+                    // Lingkaran radar (tetap pakai circleMarker agar animasinya konsisten)
                     pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
                         radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
                     }).addTo(map);
+                    
                     addLog(`CONN_ESTABLISHED: ${id}`);
                 } else {
+                    // Berpindah halus berkat CSS transition di .leaflet-marker-icon
                     markers[id].setLatLng([unit.latitude, unit.longitude]);
-                    markers[id].setStyle({ fillColor: color });
+                    markers[id].setIcon(customIcon);
+                    
                     pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
                     pulseCircles[id].setStyle({ color: color });
                 }
