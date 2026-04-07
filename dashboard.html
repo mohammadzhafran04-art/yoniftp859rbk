@@ -3,67 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HQ - COMMAND CENTER v9.0 (SOS & COMMS)</title>
+    <title>HQ - COMMAND CENTER v10.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --danger: #ff1144; --warning: #ffcc00; }
+        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --danger: #ff1144; }
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
+        
+        /* SMOOTH MOVEMENT */
+        .leaflet-marker-icon { transition: transform 2s linear !important; }
+
+        .unit-label {
+            background: rgba(0,0,0,0.8); color: #fff; border: 1px solid var(--neon-green);
+            padding: 2px 6px; font-size: 9px; border-radius: 3px; white-space: nowrap;
+            font-family: 'JetBrains Mono'; position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+        }
+        .unit-dot { width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 10px rgba(0,255,0,0.5); }
+
         .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); z-index: 1000; position: relative; }
         .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); background: #000; }
-        .panel { background: rgba(0, 10, 0, 0.9); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
+        .panel { background: rgba(0, 10, 0, 0.9); padding: 20px; overflow-y: auto; border: 1px solid rgba(0,255,0,0.1); }
         #map { height: 100%; width: 100%; background: #000; }
         
-        /* SOS EFFECT */
-        @keyframes sos-blink { 0% { background: var(--danger); } 50% { background: #000; } 100% { background: var(--danger); } }
-        .sos-active { animation: sos-blink 0.5s infinite; color: #fff !important; border: 2px solid #fff !important; }
+        .unit-card { padding: 12px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; background: rgba(0,20,0,0.4); border-radius: 4px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono'; margin-bottom: 3px; }
         
-        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; background: rgba(0,40,0,0.3); border-radius: 4px; }
-        .stat-row { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono'; margin-bottom: 4px; }
-        
-        /* COMMAND INPUT */
-        .cmd-input { width: 100%; background: #001a00; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; font-family: 'JetBrains Mono'; font-size: 11px; margin-top: 10px; outline: none; }
-        .btn-send { width: 100%; background: var(--neon-blue); color: #000; border: none; padding: 8px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-top: 5px; font-size: 10px; }
-        .btn-send:hover { opacity: 0.8; }
+        .btn-logout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-size: 9px; padding: 2px 6px; cursor: pointer; font-family: 'JetBrains Mono'; }
+        .btn-logout:hover { background: var(--danger); color: #000; }
 
-        #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.8); }
-        .tag { font-size: 10px; color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 12px; display: block; font-weight: bold; border-left: 3px solid var(--neon-blue); padding-left: 8px; }
-        #auth-loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--neon-green); }
+        .cmd-input { width: 100%; background: #001a00; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; font-family: 'JetBrains Mono'; font-size: 11px; margin-top: 10px; outline: none; }
+        .btn-send { width: 100%; background: var(--neon-blue); color: #000; border: none; padding: 10px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-top: 5px; }
+
+        @keyframes sos-blink { 0% { background: var(--danger); } 50% { background: #000; } 100% { background: var(--danger); } }
+        .sos-active { animation: sos-blink 0.4s infinite !important; border: 2px solid #fff !important; }
+        #auth-loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-<!-- Audio Alarm SOS -->
 <audio id="sos-alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
 
-<div id="auth-loader"><h1>INITIALIZING_COMMAND_CENTER...</h1></div>
+<div id="auth-loader"><h2 style="color:var(--neon-green)">HQ_BOOTING_SEQUENCE...</h2></div>
 
 <div class="header">
-    <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V9.0</span></div>
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px;">00:00:00</div>
-        <button onclick="location.reload()" style="background:none; border:1px solid #00ff00; color:#00ff00; padding:5px 10px; cursor:pointer;">REFRESH</button>
-    </div>
+    <div style="font-weight: bold; letter-spacing: 2px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">v10.0</span></div>
+    <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px;">00:00:00</div>
+    <div style="font-size: 10px; color: var(--neon-green);">NETWORK_STATUS: STABLE</div>
 </div>
 
 <div class="main-container">
     <div class="panel">
-        <span class="tag">ACTIVE_UNITS</span>
-        <div id="unit-list"></div>
+        <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ ASSET_LIST ]</span>
+        <div id="unit-list" style="margin-top: 15px;"></div>
     </div>
+
     <div id="map"></div>
+
     <div class="panel">
-        <span class="tag">UNIT_DETAILS & COMMS</span>
-        <div id="detail-box">PILIH UNIT UNTUK KIRIM INSTRUKSI</div>
+        <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ UNIT_COMMS ]</span>
+        <div id="detail-box" style="margin-top:15px; font-size:11px; border:1px solid #333; padding:10px; background:rgba(0,0,0,0.5)">PILIH UNIT...</div>
+        
         <div id="comm-panel" style="display:none; margin-top:15px;">
-            <span class="tag">DIRECT_COMMAND_UPLINK</span>
-            <input type="text" id="msgText" class="cmd-input" placeholder="KETIK INSTRUKSI DISINI...">
-            <button class="btn-send" id="btnSend">KIRIM PESAN (NOTIFIKASI SUARA)</button>
+            <input type="text" id="msgText" class="cmd-input" placeholder="INPUT COMMAND...">
+            <button class="btn-send" id="btnSend">SEND UPLINK MESSAGE</button>
         </div>
+
         <div style="margin-top:20px;">
-            <span class="tag">SATELLITE_FEED</span>
-            <div id="v-feed" style="height:200px; border:1px solid #333; display:none;">
+            <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ SAT_VISUAL ]</span>
+            <div id="v-feed" style="height:200px; border:1px solid #333; margin-top:10px; display:none;">
                 <iframe id="sat-view" style="width:100%; height:100%; border:none;"></iframe>
             </div>
         </div>
@@ -72,7 +80,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
@@ -86,66 +94,87 @@
     const db = getDatabase(app);
     let map, markers = {}, selectedId = null;
 
-    // Timer & Map Init
     setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString(); }, 1000);
-    map = L.map('map', { center: [-0.73, 135.74], zoom: 13, zoomControl: false });
+    
+    map = L.map('map', { center: [-0.73, 135.74], zoom: 14, zoomControl: false });
     L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
     document.getElementById("auth-loader").style.display = "none";
 
-    // Firebase Listener
     onValue(ref(db, "live"), snap => {
         const data = snap.val() || {};
         const list = document.getElementById("unit-list");
         list.innerHTML = "";
-        let sosDetected = false;
+        let sosActive = false;
 
         Object.keys(data).forEach(id => {
             const unit = data[id];
+            const isOnline = (Date.now() - unit.ts) < 25000;
             const isSOS = unit.status === "SOS_ACTIVATED";
-            if(isSOS) sosDetected = true;
+            if(isSOS) sosActive = true;
 
-            const color = isSOS ? '#ff1144' : ((Date.now() - unit.ts < 40000) ? '#00ff00' : '#888');
-            
-            // Map Marker
+            const color = isSOS ? '#ff1144' : (isOnline ? '#00ff00' : '#ff1144');
+            const statusLabel = isOnline ? 'ONLINE' : 'OFFLINE';
+
+            // MARKER & LABEL
             if (unit.latitude) {
-                if(!markers[id]) markers[id] = L.marker([unit.latitude, unit.longitude]).addTo(map);
-                markers[id].setLatLng([unit.latitude, unit.longitude]);
+                const iconHtml = `
+                    <div style="position:relative;">
+                        <div class="unit-label">${id}</div>
+                        <div class="unit-dot ${isSOS ? 'sos-active' : ''}" style="background:${color}"></div>
+                    </div>`;
+                
+                const customIcon = L.divIcon({ className: '', html: iconHtml, iconSize: [12, 12], iconAnchor: [6, 6] });
+
+                if(!markers[id]) {
+                    markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon }).addTo(map);
+                } else {
+                    markers[id].setLatLng([unit.latitude, unit.longitude]);
+                    markers[id].setIcon(customIcon);
+                }
+
+                // Auto-Update Satelite Visual if Selected
+                if(selectedId === id) {
+                    document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
+                }
             }
 
-            // List Card
+            // LIST CARD
             const card = document.createElement("div");
-            card.className = `unit-card ${isSOS ? 'sos-active' : ''}`;
+            card.className = `unit-card`;
+            card.style.borderColor = isSOS ? 'red' : 'rgba(0,255,0,0.2)';
             card.innerHTML = `
-                <div style="font-weight:bold;">${id}</div>
-                <div class="stat-row"><span>STATUS</span><span>${unit.status}</span></div>
-                <div class="stat-row"><span>BATTERY</span><span>${unit.battery}%</span></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-weight:bold; font-size:11px;">${id}</span>
+                    <button class="btn-logout" onclick="event.stopPropagation(); remoteKill('${id}')">REMOTE_KILL</button>
+                </div>
+                <div class="stat-row"><span>STATUS</span><span style="color:${color}">${isSOS ? 'MAYDAY' : statusLabel}</span></div>
+                <div class="stat-row"><span>VELOCITY</span><span>${unit.speed || 0} KMH</span></div>
+                <div class="stat-row"><span>ENERGY</span><span>${unit.battery}%</span></div>
             `;
-            card.onclick = () => selectUnit(id, unit);
+            card.onclick = () => { selectedId = id; map.flyTo([unit.latitude, unit.longitude], 18); selectUnit(id, unit); };
             list.appendChild(card);
         });
 
-        if(sosDetected) document.getElementById("sos-alarm").play();
+        if(sosActive) document.getElementById("sos-alarm").play();
     });
 
+    window.remoteKill = function(id) {
+        if(confirm(`TERMINATE ACCESS FOR ${id}?`)) {
+            remove(ref(db, `live/${id}`)).then(() => alert("KILL_SIGNAL_SENT"));
+        }
+    };
+
     function selectUnit(id, unit) {
-        selectedId = id;
         document.getElementById("comm-panel").style.display = "block";
         document.getElementById("v-feed").style.display = "block";
-        document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
-        document.getElementById("detail-box").innerHTML = `UNIT: ${id}<br>LAT: ${unit.latitude}<br>LON: ${unit.longitude}`;
-        map.flyTo([unit.latitude, unit.longitude], 18);
+        document.getElementById("detail-box").innerHTML = `ID: ${id}<br>GPS: ${unit.latitude.toFixed(6)}, ${unit.longitude.toFixed(6)}<br>ACC: ±${unit.accuracy}m`;
     }
 
     document.getElementById("btnSend").onclick = () => {
         const txt = document.getElementById("msgText").value;
         if(!selectedId || !txt) return;
-        set(ref(db, `live/${selectedId}/command_msg`), {
-            text: txt,
-            ts: Date.now()
-        }).then(() => {
-            alert("INSTRUKSI TERKIRIM!");
-            document.getElementById("msgText").value = "";
-        });
+        set(ref(db, `live/${selectedId}/command_msg`), { text: txt, ts: Date.now() })
+        .then(() => { alert("UPLINK_SUCCESS"); document.getElementById("msgText").value = ""; });
     };
 </script>
 </body>
