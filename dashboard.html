@@ -3,315 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HQ - COMMAND CENTER v8.0</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00ff00">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+    <title>HQ - COMMAND CENTER v9.0 (SOS & COMMS)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --panel-bg: rgba(0, 10, 0, 0.9); --danger: #ff1144; }
-        
-        /* --- SMOOTH MOVEMENT ANIMATION --- */
-        .leaflet-marker-icon {
-            transition: transform 3s linear !important; 
-        }
-
-        .unit-dot {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
-        #auth-loader { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background:#000; z-index: 9999; display: flex; 
-            flex-direction: column; align-items: center; justify-content: center;
-            font-family: 'Orbitron', sans-serif; color: var(--neon-green);
-        }
-
+        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --dark-bg: #000a00; --danger: #ff1144; --warning: #ffcc00; }
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
+        .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); z-index: 1000; position: relative; }
+        .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); background: #000; }
+        .panel { background: rgba(0, 10, 0, 0.9); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
+        #map { height: 100%; width: 100%; background: #000; }
         
-        .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); box-shadow: 0 0 20px rgba(0,255,0,0.3); z-index: 1000; position: relative; }
-        .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); gap: 0; background: #000; }
+        /* SOS EFFECT */
+        @keyframes sos-blink { 0% { background: var(--danger); } 50% { background: #000; } 100% { background: var(--danger); } }
+        .sos-active { animation: sos-blink 0.5s infinite; color: #fff !important; border: 2px solid #fff !important; }
         
-        @media (max-width: 1024px) {
-            .main-container { grid-template-columns: 1fr; grid-template-rows: 200px 1fr 200px; }
-            .panel { overflow-y: scroll; }
-        }
-
-        .panel { background: var(--panel-bg); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; border: 1px solid rgba(0,255,0,0.2); backdrop-filter: blur(15px); }
-        #map { background: #000; height: 100%; width: 100%; }
+        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; background: rgba(0,40,0,0.3); border-radius: 4px; }
+        .stat-row { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono'; margin-bottom: 4px; }
         
-        @keyframes pulse-radar {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(3); opacity: 0; }
-        }
-        .radar-icon { border-radius: 50%; animation: pulse-radar 2s infinite; }
+        /* COMMAND INPUT */
+        .cmd-input { width: 100%; background: #001a00; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; font-family: 'JetBrains Mono'; font-size: 11px; margin-top: 10px; outline: none; }
+        .btn-send { width: 100%; background: var(--neon-blue); color: #000; border: none; padding: 8px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-top: 5px; font-size: 10px; }
+        .btn-send:hover { opacity: 0.8; }
 
-        .unit-card { padding: 15px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; cursor: pointer; transition: 0.3s; background: rgba(0,40,0,0.3); position: relative; border-radius: 4px; }
-        .unit-card:hover { background: rgba(0,242,255,0.1); border-color: var(--neon-blue); box-shadow: 0 0 15px rgba(0,242,255,0.2); }
-        
-        .btn-remote-logout {
-            background: transparent;
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            font-family: 'JetBrains Mono';
-            font-size: 9px;
-            padding: 2px 6px;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-left: 10px;
-            font-weight: bold;
-        }
-        .btn-remote-logout:hover {
-            background: var(--danger);
-            color: #000;
-        }
-
-        .stat-row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 4px; font-family: 'JetBrains Mono'; }
-        .progress-bg { background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px; margin-bottom: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; transition: 0.6s; }
-
-        #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.8); margin-bottom: 15px; }
+        #detail-box { font-family: 'JetBrains Mono'; font-size: 11px; padding: 15px; border: 1px solid var(--neon-blue); background: rgba(0,0,0,0.8); }
         .tag { font-size: 10px; color: var(--neon-blue); letter-spacing: 2px; margin-bottom: 12px; display: block; font-weight: bold; border-left: 3px solid var(--neon-blue); padding-left: 8px; }
-
-        .visual-feed { width: 100%; height: 200px; border: 1px solid #444; border-radius: 8px; overflow: hidden; }
-        iframe { width: 100%; height: 100%; border: none; }
-
-        .analytics { margin-top: auto; padding: 15px; background: rgba(0,20,0,0.5); border-top: 1px solid var(--neon-green); font-family: 'JetBrains Mono'; font-size: 10px; }
-
-        #btnLogoutTop { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-family: 'Orbitron'; font-size: 10px; padding: 5px 15px; cursor: pointer; transition: 0.3s; letter-spacing: 1px; }
-        #btnLogoutTop:hover { background: var(--danger); color: #fff; }
-        
-        @keyframes load-bar { from { left: -100%; } to { left: 100%; } }
+        #auth-loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--neon-green); }
     </style>
 </head>
 <body>
 
-<audio id="silent-audio" loop muted>
-    <source src="https://raw.githubusercontent.com/anars/blank-audio/master/10-seconds-of-silence.mp3" type="audio/mp3">
-</audio>
+<!-- Audio Alarm SOS -->
+<audio id="sos-alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
 
-<div id="auth-loader">
-    <div style="font-size: 24px; margin-bottom: 10px; letter-spacing: 5px;">VERIFYING_ACCESS...</div>
-    <div style="width: 200px; height: 2px; background: rgba(0,255,0,0.2); position: relative; overflow: hidden;">
-        <div style="position: absolute; width: 50%; height: 100%; background: var(--neon-green); animation: load-bar 1s infinite;"></div>
-    </div>
-</div>
+<div id="auth-loader"><h1>INITIALIZING_COMMAND_CENTER...</h1></div>
 
 <div class="header">
-    <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V8.0</span></div>
+    <div style="font-weight: bold; letter-spacing: 3px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">OS_V9.0</span></div>
     <div style="display: flex; align-items: center; gap: 20px;">
-        <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px; color: #fff;">00:00:00</div>
-        <button id="btnLogoutTop">TERMINATE_SESSION</button>
+        <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px;">00:00:00</div>
+        <button onclick="location.reload()" style="background:none; border:1px solid #00ff00; color:#00ff00; padding:5px 10px; cursor:pointer;">REFRESH</button>
     </div>
-    <div id="uplink-stat" style="font-size: 10px; color: var(--neon-green); border: 1px solid var(--neon-green); padding: 4px 10px;">SYSTEM_STABLE</div>
 </div>
 
 <div class="main-container">
     <div class="panel">
-        <span class="tag">OPERATIONAL_ASSETS</span>
+        <span class="tag">ACTIVE_UNITS</span>
         <div id="unit-list"></div>
-        <div class="analytics">
-            TOTAL ASSETS: <span id="count">0</span> | AVG VELOCITY: <span id="avg-spd">0</span> KMH
-        </div>
     </div>
-
     <div id="map"></div>
-
     <div class="panel">
-        <span class="tag">UNIT_SPECIFICATIONS</span>
-        <div id="detail-box">READY_FOR_UPLINK...</div>
-        
-        <span class="tag">REALTIME_SATELLITE</span>
-        <div class="visual-feed" id="v-feed" style="display:none;">
-            <iframe id="sat-view"></iframe>
+        <span class="tag">UNIT_DETAILS & COMMS</span>
+        <div id="detail-box">PILIH UNIT UNTUK KIRIM INSTRUKSI</div>
+        <div id="comm-panel" style="display:none; margin-top:15px;">
+            <span class="tag">DIRECT_COMMAND_UPLINK</span>
+            <input type="text" id="msgText" class="cmd-input" placeholder="KETIK INSTRUKSI DISINI...">
+            <button class="btn-send" id="btnSend">KIRIM PESAN (NOTIFIKASI SUARA)</button>
         </div>
-
-        <div style="margin-top: 20px;">
-            <span class="tag">NETWORK_TRAFFIC</span>
-            <div id="logs" style="font-family:'JetBrains Mono'; font-size:9px; color:#00ff00; height: 120px; overflow-y:auto; opacity: 0.7;"></div>
+        <div style="margin-top:20px;">
+            <span class="tag">SATELLITE_FEED</span>
+            <div id="v-feed" style="height:200px; border:1px solid #333; display:none;">
+                <iframe id="sat-view" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
         </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
         authDomain: "database-baru-rbk.firebaseapp.com",
         databaseURL: "https://database-baru-rbk-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "database-baru-rbk",
-        storageBucket: "database-baru-rbk.firebasestorage.app",
-        messagingSenderId: "419838977211",
-        appId: "1:419838977211:web:2c6af76dab5cf21915f59e"
+        storageBucket: "database-baru-rbk.firebasestorage.app"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth(app);
+    let map, markers = {}, selectedId = null;
 
-    let wakeLock = null;
+    // Timer & Map Init
+    setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString(); }, 1000);
+    map = L.map('map', { center: [-0.73, 135.74], zoom: 13, zoomControl: false });
+    L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
+    document.getElementById("auth-loader").style.display = "none";
 
-    const requestWakeLock = async () => {
-        try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-    };
+    // Firebase Listener
+    onValue(ref(db, "live"), snap => {
+        const data = snap.val() || {};
+        const list = document.getElementById("unit-list");
+        list.innerHTML = "";
+        let sosDetected = false;
 
-    document.addEventListener('click', () => {
-        const audio = document.getElementById('silent-audio');
-        if(audio.paused) { audio.play(); requestWakeLock(); }
-    }, { once: true });
+        Object.keys(data).forEach(id => {
+            const unit = data[id];
+            const isSOS = unit.status === "SOS_ACTIVATED";
+            if(isSOS) sosDetected = true;
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) { window.location.replace("login.html"); } 
-        else { document.getElementById("auth-loader").style.display = "none"; startApp(user); }
+            const color = isSOS ? '#ff1144' : ((Date.now() - unit.ts < 40000) ? '#00ff00' : '#888');
+            
+            // Map Marker
+            if (unit.latitude) {
+                if(!markers[id]) markers[id] = L.marker([unit.latitude, unit.longitude]).addTo(map);
+                markers[id].setLatLng([unit.latitude, unit.longitude]);
+            }
+
+            // List Card
+            const card = document.createElement("div");
+            card.className = `unit-card ${isSOS ? 'sos-active' : ''}`;
+            card.innerHTML = `
+                <div style="font-weight:bold;">${id}</div>
+                <div class="stat-row"><span>STATUS</span><span>${unit.status}</span></div>
+                <div class="stat-row"><span>BATTERY</span><span>${unit.battery}%</span></div>
+            `;
+            card.onclick = () => selectUnit(id, unit);
+            list.appendChild(card);
+        });
+
+        if(sosDetected) document.getElementById("sos-alarm").play();
     });
 
-    document.getElementById("btnLogoutTop").onclick = () => {
-        if(confirm("TERMINATE COMMAND SESSION?")) {
-            signOut(auth).then(() => window.location.replace("login.html"));
-        }
-    };
-
-    function startApp(user) {
-        setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('en-GB'); }, 1000);
-        initMap();
+    function selectUnit(id, unit) {
+        selectedId = id;
+        document.getElementById("comm-panel").style.display = "block";
+        document.getElementById("v-feed").style.display = "block";
+        document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
+        document.getElementById("detail-box").innerHTML = `UNIT: ${id}<br>LAT: ${unit.latitude}<br>LON: ${unit.longitude}`;
+        map.flyTo([unit.latitude, unit.longitude], 18);
     }
 
-    let map;
-    function initMap() {
-        if (map) return; 
-        map = L.map('map', { center: [-0.73, 135.74], zoom: 13, zoomControl: false });
-        L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
-        }).addTo(map);
-        listenToFirebase();
-    }
-
-    let markers = {};
-    let pulseCircles = {};
-    let selectedId = null;
-
-    function addLog(msg) {
-        const log = document.getElementById("logs");
-        if (!log) return;
-        const entry = document.createElement("div");
-        entry.innerText = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-        log.prepend(entry);
-    }
-
-    window.remoteLogoutUnit = function(id) {
-        if(confirm(`TERMINATE UPLINK FOR ${id}?`)) {
-            remove(ref(db, `live/${id}`)).then(() => {
-                addLog(`REMOTE_KILL_SENT: ${id}`);
-            });
-        }
-    };
-
-    function listenToFirebase() {
-        onValue(ref(db, "live"), snap => {
-            const data = snap.val() || {};
-            const list = document.getElementById("unit-list");
-            list.innerHTML = "";
-            let totalSpd = 0, count = 0;
-
-            Object.keys(markers).forEach(id => {
-                if(!data[id]) {
-                    map.removeLayer(markers[id]);
-                    map.removeLayer(pulseCircles[id]);
-                    delete markers[id];
-                    delete pulseCircles[id];
-                    addLog(`CONN_LOST: ${id}`);
-                }
-            });
-
-            Object.keys(data).forEach(id => {
-                const unit = data[id];
-                if (!unit.ts) return;
-
-                const isOnline = (Date.now() - unit.ts) < 30000; 
-                count++;
-                totalSpd += (unit.speed || 0);
-                const color = isOnline ? '#00ff00' : '#888';
-
-                // Hanya gambar marker jika ada koordinat
-                if (unit.latitude && unit.longitude) {
-                    const customIcon = L.divIcon({
-                        className: 'custom-icon',
-                        html: `<div class="unit-dot" style="background:${color};"></div>`,
-                        iconSize: [14, 14], iconAnchor: [7, 7]
-                    });
-
-                    if(!markers[id]) {
-                        markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon }).addTo(map);
-                        pulseCircles[id] = L.circleMarker([unit.latitude, unit.longitude], {
-                            radius: 7, color: color, weight: 1, fillOpacity: 0, className: 'radar-icon'
-                        }).addTo(map);
-                        addLog(`UPLINK_ESTABLISHED: ${id}`);
-                    } else {
-                        markers[id].setLatLng([unit.latitude, unit.longitude]);
-                        markers[id].setIcon(customIcon);
-                        pulseCircles[id].setLatLng([unit.latitude, unit.longitude]);
-                        pulseCircles[id].setStyle({ color: color });
-                    }
-                }
-
-                const card = document.createElement("div");
-                card.className = `unit-card`;
-                card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <div style="display:flex; align-items:center;">
-                            <span style="font-weight:bold; font-size:11px;">${id}</span>
-                            <button class="btn-remote-logout" onclick="event.stopPropagation(); remoteLogoutUnit('${id}')">LOGOUT</button>
-                        </div>
-                        <span style="font-size:8px; background:${color}; color:#000; padding:2px 5px; border-radius:2px;">${isOnline ? 'ONLINE' : 'OFFLINE'}</span>
-                    </div>
-                    <div class="stat-row"><span>VELOCITY</span><span>${unit.speed || 0} KMH</span></div>
-                    <div class="progress-bg"><div class="progress-fill" style="width:${Math.min(unit.speed || 0, 100)}%; background:var(--neon-blue)"></div></div>
-                    <div class="stat-row"><span>GPS_ACC</span><span>±${unit.accuracy || 0}M</span></div>
-                `;
-                
-                card.onclick = () => {
-                    if (unit.latitude) {
-                        selectedId = id;
-                        map.flyTo([unit.latitude, unit.longitude], 18);
-                        showDetail(id, unit);
-                    }
-                };
-                list.appendChild(card);
-                if(selectedId === id) showDetail(id, unit);
-            });
-
-            document.getElementById("count").innerText = count;
-            document.getElementById("avg-spd").innerText = count > 0 ? (totalSpd/count).toFixed(1) : 0;
+    document.getElementById("btnSend").onclick = () => {
+        const txt = document.getElementById("msgText").value;
+        if(!selectedId || !txt) return;
+        set(ref(db, `live/${selectedId}/command_msg`), {
+            text: txt,
+            ts: Date.now()
+        }).then(() => {
+            alert("INSTRUKSI TERKIRIM!");
+            document.getElementById("msgText").value = "";
         });
-    }
-
-    function showDetail(id, unit) {
-        document.getElementById("detail-box").innerHTML = `
-            <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:10px;">ID: ${id}</div>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div>LAT: <span style="color:#fff">${unit.latitude.toFixed(6)}</span></div>
-                <div>LON: <span style="color:#fff">${unit.longitude.toFixed(6)}</span></div>
-                <div>SPD: <span style="color:#fff">${unit.speed} KMH</span></div>
-                <div>BAT: <span style="color:#fff">${unit.battery}%</span></div>
-            </div>
-        `;
-        const feed = document.getElementById("v-feed");
-        const frame = document.getElementById("sat-view");
-        feed.style.display = "block";
-        frame.src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&ie=UTF8&iwloc=&output=embed`;
-    }
+    };
 </script>
 </body>
 </html>
