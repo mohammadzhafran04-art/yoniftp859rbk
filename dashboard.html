@@ -2,22 +2,21 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HQ - COMMAND CENTER v12.0 (PRO-TACTICAL)</title>
+    <title>HQ - COMMAND CENTER v12.5 (PRO-TACTICAL)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
-        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --neon-yellow: #ffff00; --dark-bg: #000a00; --danger: #ff1144; }
+        :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --neon-yellow: #ffff00; --dark-bg: #000a00; --danger: #ff1144; --offline: #555; }
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
         
-        /* SMOOTH MOVEMENT */
-        .leaflet-marker-icon { transition: transform 3s linear !important; cursor: pointer !important; }
+        .leaflet-marker-icon { transition: transform 2s linear !important; cursor: pointer !important; }
 
         .unit-label {
             background: rgba(0,0,0,0.85); color: #fff; border: 1px solid var(--neon-green);
             padding: 2px 8px; font-size: 10px; border-radius: 4px; white-space: nowrap;
             font-family: 'JetBrains Mono'; position: absolute; top: -30px; left: 50%; 
-            transform: translateX(-50%); pointer-events: auto;
+            transform: translateX(-50%); pointer-events: auto; z-index: 1000;
         }
         .unit-dot { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 15px var(--neon-green); transition: all 0.5s ease; }
 
@@ -27,16 +26,14 @@
         #map { height: 100%; width: 100%; background: #000; }
         
         .btn-kill-all { width: 100%; background: var(--danger); color: #fff; border: none; padding: 10px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-bottom: 15px; border-radius: 4px; letter-spacing: 1px; }
-        .btn-kill-all:hover { filter: brightness(1.2); }
-
-        .unit-card { padding: 12px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; background: rgba(0,20,0,0.4); border-radius: 4px; cursor: pointer; }
+        .unit-card { padding: 12px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; background: rgba(0,20,0,0.4); border-radius: 4px; cursor: pointer; transition: all 0.3s; }
         .unit-card:hover { border-color: var(--neon-blue); }
         .card-active { border-color: var(--neon-blue) !important; background: rgba(0,242,255,0.1) !important; }
 
-        .status-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; border: 1px solid #fff; }
         .stat-row { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono'; margin-bottom: 3px; }
         
-        .btn-logout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-size: 9px; padding: 2px 6px; cursor: pointer; }
+        .btn-logout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-size: 9px; padding: 2px 6px; cursor: pointer; border-radius: 3px; }
         .btn-logout:hover { background: var(--danger); color: #000; }
 
         .cmd-input { width: 100%; background: #001a00; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 10px; font-family: 'JetBrains Mono'; font-size: 11px; margin-top: 10px; outline: none; box-sizing: border-box; }
@@ -50,19 +47,18 @@
 <body>
 
 <audio id="sos-alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
-
 <div id="auth-loader"><h2 style="color:var(--neon-green)">INITIALIZING_HQ_SYSTEM...</h2></div>
 
 <div class="header">
-    <div style="font-weight: bold; letter-spacing: 2px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">v12.0</span></div>
+    <div style="font-weight: bold; letter-spacing: 2px;">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">v12.5</span></div>
     <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 20px; color: #fff;">00:00:00</div>
-    <div style="font-size: 10px; color: var(--neon-green);">ENCRYPTION: ACTIVE</div>
+    <div style="font-size: 10px; color: var(--neon-green);">REMOTE_WIPE: READY</div>
 </div>
 
 <div class="main-container">
     <div class="panel">
-        <button class="btn-kill-all" onclick="killAllUnits()">TERMINATE ALL UPLINKS</button>
-        <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ ASSET_LIST ]</span>
+        <button class="btn-kill-all" onclick="killAllUnits()">TERMINATE & WIPE ALL DATA</button>
+        <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ ACTIVE_ASSETS ]</span>
         <div id="unit-list" style="margin-top: 10px;"></div>
     </div>
 
@@ -88,7 +84,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, update, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
@@ -114,7 +110,7 @@
         list.innerHTML = "";
         let sosDetected = false;
 
-        // Bersihkan marker yang sudah dihapus dari database (Remote Wipe)
+        // Cleanup markers if data is gone
         Object.keys(markers).forEach(id => {
             if(!data[id]) {
                 map.removeLayer(markers[id]);
@@ -126,23 +122,25 @@
             const unit = data[id];
             const diff = Date.now() - unit.ts;
             
-            // --- LOGIKA STATUS WARNA (INSTYRUKS KOMANDAN) ---
+            // LOGIKA SYNC DENGAN APK
             const isSOS = unit.status === "SOS_ACTIVATED";
-            // Lag jika data > 25 detik atau status HP sedang mencari sinyal/GPS
+            // Lag jika > 25 detik atau status khusus dari HP
             const isLag = diff >= 25000 || unit.status === "SIGNAL_WEAK" || unit.status === "SIGNAL_LOST" || unit.status === "GPS_SEARCHING";
             
             if(isSOS) sosDetected = true;
 
-            let statusColor = "#00ff00"; // Default Online (Hijau)
-            let statusLabel = "ONLINE";
+            let statusColor = "#00ff00"; // Online (Green)
+            let statusText = unit.status || "ACTIVE";
 
             if (isSOS) {
-                statusColor = "#ff1144"; statusLabel = "MAYDAY";
+                statusColor = "#ff1144"; 
+                statusText = "MAYDAY";
             } else if (isLag) {
-                statusColor = "#ffff00"; statusLabel = "LAG / WEAK";
+                statusColor = "#ffff00"; 
+                statusText = "LAG / WEAK";
             }
 
-            // --- UPDATE MARKER DI PETA ---
+            // MARKER UPDATES
             if (unit.latitude) {
                 const iconHtml = `
                     <div style="position:relative;">
@@ -164,7 +162,7 @@
                 }
             }
 
-            // --- UPDATE DAFTAR ANGGOTA (KIRI) ---
+            // LIST CARD (LEFT PANEL)
             const card = document.createElement("div");
             card.className = `unit-card ${selectedId === id ? 'card-active' : ''}`;
             if(isSOS) card.style.borderColor = 'red';
@@ -177,7 +175,7 @@
                     <span>STATUS</span>
                     <span>
                         <span class="status-indicator" style="background:${statusColor}"></span>
-                        <span style="color:${statusColor}">${statusLabel}</span>
+                        <span style="color:${statusColor}">${statusText}</span>
                     </span>
                 </div>
                 <div class="stat-row"><span>VELOCITY</span><span>${unit.speed || 0} KMH</span></div>
@@ -191,14 +189,14 @@
     });
 
     window.killAllUnits = function() {
-        if(confirm("TERMINATE & WIPE ALL DATA? SEMUA UNIT AKAN DI-LOGOUT PAKSA.")) {
-            remove(ref(db, "live")).then(() => alert("ALL_UNITS_WIPED_SUCCESSFULLY"));
+        if(confirm("TERMINATE & WIPE ALL DATA? SELURUH UNIT AKAN DI-LOGOUT PAKSA.")) {
+            remove(ref(db, "live")).then(() => alert("DATABASE_CLEARED_SUCCESSFULLY"));
         }
     };
 
     window.remoteKill = function(id) {
-        if(confirm(`WIPE DATA & PUTUS AKSES UNIT: ${id}?`)) {
-            remove(ref(db, `live/${id}`)).then(() => alert(`UNIT_${id}_DELETED`));
+        if(confirm(`WIPE DATA UNIT: ${id}? UNIT AKAN OTOMATIS LOGOUT.`)) {
+            remove(ref(db, `live/${id}`)).then(() => alert(`UNIT_${id}_WIPED`));
         }
     };
 
@@ -210,7 +208,8 @@
         document.getElementById("detail-box").innerHTML = `
             <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; margin-bottom:8px; padding-bottom:4px;">${id}</div>
             COORD: ${unit.latitude.toFixed(6)}, ${unit.longitude.toFixed(6)}<br>
-            ACCURACY: ±${unit.accuracy}m | SPEED: ${unit.speed} KMH
+            ACCURACY: ±${unit.accuracy}m<br>
+            SPEED: ${unit.speed} KMH
         `;
     }
 
