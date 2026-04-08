@@ -9,7 +9,10 @@
     <style>
         :root { --neon-green: #00ff00; --neon-blue: #00f2ff; --neon-yellow: #ffff00; --dark-bg: #000a00; --danger: #ff1144; }
         body { margin: 0; font-family: 'Orbitron', sans-serif; background: #000; color: var(--neon-green); overflow: hidden; height: 100vh; }
+        
+        /* SMOOTH MOVEMENT */
         .leaflet-marker-icon { transition: transform 3s linear !important; cursor: pointer !important; }
+
         .unit-label {
             background: rgba(0,0,0,0.85); color: #fff; border: 1px solid var(--neon-green);
             padding: 2px 8px; font-size: 10px; border-radius: 4px; white-space: nowrap;
@@ -17,18 +20,28 @@
             transform: translateX(-50%); pointer-events: auto;
         }
         .unit-dot { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 15px var(--neon-green); transition: all 0.5s ease; }
+
         .header { background: rgba(0,0,0,0.9); padding: 10px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon-green); z-index: 1000; position: relative; }
         .main-container { display: grid; grid-template-columns: 350px 1fr 350px; height: calc(100vh - 65px); background: #000; }
         .panel { background: rgba(0, 10, 0, 0.95); padding: 20px; overflow-y: auto; border: 1px solid rgba(0,255,0,0.1); }
         #map { height: 100%; width: 100%; background: #000; }
+        
         .btn-kill-all { width: 100%; background: var(--danger); color: #fff; border: none; padding: 10px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-bottom: 15px; border-radius: 4px; letter-spacing: 1px; }
+        .btn-kill-all:hover { filter: brightness(1.2); }
+
         .unit-card { padding: 12px; border: 1px solid rgba(0,255,0,0.2); margin-bottom: 10px; background: rgba(0,20,0,0.4); border-radius: 4px; cursor: pointer; }
+        .unit-card:hover { border-color: var(--neon-blue); }
         .card-active { border-color: var(--neon-blue) !important; background: rgba(0,242,255,0.1) !important; }
+
         .status-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
         .stat-row { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono'; margin-bottom: 3px; }
+        
         .btn-logout { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-size: 9px; padding: 2px 6px; cursor: pointer; }
+        .btn-logout:hover { background: var(--danger); color: #000; }
+
         .cmd-input { width: 100%; background: #001a00; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 10px; font-family: 'JetBrains Mono'; font-size: 11px; margin-top: 10px; outline: none; box-sizing: border-box; }
         .btn-send { width: 100%; background: var(--neon-blue); color: #000; border: none; padding: 12px; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-top: 8px; }
+
         @keyframes sos-blink { 0% { background: var(--danger); box-shadow: 0 0 20px red; } 50% { background: #000; } 100% { background: var(--danger); } }
         .sos-active { animation: sos-blink 0.4s infinite !important; }
         #auth-loader { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
@@ -37,6 +50,7 @@
 <body>
 
 <audio id="sos-alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto"></audio>
+
 <div id="auth-loader"><h2 style="color:var(--neon-green)">INITIALIZING_HQ_SYSTEM...</h2></div>
 
 <div class="header">
@@ -51,14 +65,18 @@
         <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ ASSET_LIST ]</span>
         <div id="unit-list" style="margin-top: 10px;"></div>
     </div>
+
     <div id="map"></div>
+
     <div class="panel">
         <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ COMMAND_UPLINK ]</span>
         <div id="detail-box" style="margin-top:10px; font-size:11px; border:1px solid #333; padding:12px; background:rgba(0,0,0,0.6)">PILIH UNIT UNTUK MONITORING...</div>
+        
         <div id="comm-panel" style="display:none; margin-top:15px;">
             <input type="text" id="msgText" class="cmd-input" placeholder="KETIK INSTRUKSI...">
             <button class="btn-send" id="btnSend">SEND DIRECT MESSAGE</button>
         </div>
+
         <div style="margin-top:25px;">
             <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ SATELLITE_FEED ]</span>
             <div id="v-feed" style="height:220px; border:1px solid #333; margin-top:10px; display:none;">
@@ -85,6 +103,7 @@
     let map, markers = {}, selectedId = null;
 
     setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString(); }, 1000);
+    
     map = L.map('map', { center: [-0.73, 135.74], zoom: 14, zoomControl: false });
     L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
     document.getElementById("auth-loader").style.display = "none";
@@ -95,7 +114,7 @@
         list.innerHTML = "";
         let sosDetected = false;
 
-        // Hapus marker yang sudah tidak ada di database
+        // Bersihkan marker yang sudah dihapus dari database (Remote Wipe)
         Object.keys(markers).forEach(id => {
             if(!data[id]) {
                 map.removeLayer(markers[id]);
@@ -105,14 +124,31 @@
 
         Object.keys(data).forEach(id => {
             const unit = data[id];
+            const diff = Date.now() - unit.ts;
+            
+            // --- LOGIKA STATUS WARNA (INSTYRUKS KOMANDAN) ---
             const isSOS = unit.status === "SOS_ACTIVATED";
+            // Lag jika data > 25 detik atau status HP sedang mencari sinyal/GPS
+            const isLag = diff >= 25000 || unit.status === "SIGNAL_WEAK" || unit.status === "SIGNAL_LOST" || unit.status === "GPS_SEARCHING";
+            
             if(isSOS) sosDetected = true;
 
-            let markerColor = isSOS ? "#ff1144" : "#00ff00";
-            let statusText = isSOS ? "MAYDAY" : unit.status || "ONLINE";
+            let statusColor = "#00ff00"; // Default Online (Hijau)
+            let statusLabel = "ONLINE";
 
+            if (isSOS) {
+                statusColor = "#ff1144"; statusLabel = "MAYDAY";
+            } else if (isLag) {
+                statusColor = "#ffff00"; statusLabel = "LAG / WEAK";
+            }
+
+            // --- UPDATE MARKER DI PETA ---
             if (unit.latitude) {
-                const iconHtml = `<div style="position:relative;"><div class="unit-label" style="border-color:${markerColor}">${id}</div><div class="unit-dot ${isSOS ? 'sos-active' : ''}" style="background:${markerColor};"></div></div>`;
+                const iconHtml = `
+                    <div style="position:relative;">
+                        <div class="unit-label" style="border-color:${statusColor}">${id}</div>
+                        <div class="unit-dot ${isSOS ? 'sos-active' : ''}" style="background:${statusColor}; box-shadow: 0 0 15px ${statusColor}"></div>
+                    </div>`;
                 const customIcon = L.divIcon({ className: '', html: iconHtml, iconSize: [14, 14], iconAnchor: [7, 7] });
 
                 if(!markers[id]) {
@@ -122,34 +158,47 @@
                     markers[id].setLatLng([unit.latitude, unit.longitude]);
                     markers[id].setIcon(customIcon);
                 }
+
+                if(selectedId === id) {
+                    document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
+                }
             }
 
+            // --- UPDATE DAFTAR ANGGOTA (KIRI) ---
             const card = document.createElement("div");
             card.className = `unit-card ${selectedId === id ? 'card-active' : ''}`;
+            if(isSOS) card.style.borderColor = 'red';
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <span style="font-weight:bold; font-size:11px; color:#fff;">${id}</span>
                     <button class="btn-logout" onclick="event.stopPropagation(); remoteKill('${id}')">WIPE</button>
                 </div>
-                <div class="stat-row"><span>STATUS</span><span style="color:${markerColor}">${statusText}</span></div>
+                <div class="stat-row">
+                    <span>STATUS</span>
+                    <span>
+                        <span class="status-indicator" style="background:${statusColor}"></span>
+                        <span style="color:${statusColor}">${statusLabel}</span>
+                    </span>
+                </div>
                 <div class="stat-row"><span>VELOCITY</span><span>${unit.speed || 0} KMH</span></div>
                 <div class="stat-row"><span>ENERGY</span><span>${unit.battery}%</span></div>
             `;
             card.onclick = () => selectUnit(id, unit);
             list.appendChild(card);
         });
+
         if(sosDetected) document.getElementById("sos-alarm").play();
     });
 
     window.killAllUnits = function() {
-        if(confirm("TERMINATE & WIPE ALL DATA?")) {
-            remove(ref(db, "live")).then(() => alert("ALL_UNITS_WIPED"));
+        if(confirm("TERMINATE & WIPE ALL DATA? SEMUA UNIT AKAN DI-LOGOUT PAKSA.")) {
+            remove(ref(db, "live")).then(() => alert("ALL_UNITS_WIPED_SUCCESSFULLY"));
         }
     };
 
     window.remoteKill = function(id) {
-        if(confirm(`WIPE DATA UNIT: ${id}?`)) {
-            remove(ref(db, `live/${id}`)).then(() => alert(`UNIT_${id}_WIPED`));
+        if(confirm(`WIPE DATA & PUTUS AKSES UNIT: ${id}?`)) {
+            remove(ref(db, `live/${id}`)).then(() => alert(`UNIT_${id}_DELETED`));
         }
     };
 
@@ -159,7 +208,7 @@
         document.getElementById("comm-panel").style.display = "block";
         document.getElementById("v-feed").style.display = "block";
         document.getElementById("detail-box").innerHTML = `
-            <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; margin-bottom:8px;">${id}</div>
+            <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; margin-bottom:8px; padding-bottom:4px;">${id}</div>
             COORD: ${unit.latitude.toFixed(6)}, ${unit.longitude.toFixed(6)}<br>
             ACCURACY: ±${unit.accuracy}m | SPEED: ${unit.speed} KMH
         `;
@@ -168,9 +217,10 @@
     document.getElementById("btnSend").onclick = () => {
         const txt = document.getElementById("msgText").value;
         if(!selectedId || !txt) return;
-        set(ref(db, `live/${selectedId}/command_msg`), { text: txt, ts: Date.now() }).then(() => {
-            alert("COMMAND_SENT");
-            document.getElementById("msgText").value = "";
+        set(ref(db, `live/${selectedId}/command_msg`), { text: txt, ts: Date.now() })
+        .then(() => { 
+            alert("COMMAND_UPLINK_SUCCESS"); 
+            document.getElementById("msgText").value = ""; 
         });
     };
 </script>
