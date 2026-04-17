@@ -30,6 +30,18 @@
         .unit-card:hover { border-color: var(--neon-blue); }
         .card-active { border-color: var(--neon-blue) !important; background: rgba(0,242,255,0.1) !important; }
 
+        /* ANIMASI DENYUT MERAH UNTUK KARTU SOS */
+        @keyframes card-sos-pulse {
+            0% { box-shadow: 0 0 5px var(--danger); background: rgba(255, 0, 0, 0.1); }
+            50% { box-shadow: 0 0 25px var(--danger); background: rgba(255, 0, 0, 0.4); }
+            100% { box-shadow: 0 0 5px var(--danger); background: rgba(255, 0, 0, 0.1); }
+        }
+        .card-sos { 
+            animation: card-sos-pulse 0.6s infinite !important; 
+            border: 2px solid var(--danger) !important;
+            color: #fff !important;
+        }
+
         .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; border: 1px solid #fff; }
         .stat-row { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono'; margin-bottom: 3px; }
         
@@ -58,7 +70,10 @@
 <div class="main-container">
     <div class="panel">
         <button class="btn-kill-all" onclick="killAllUnits()">TERMINATE & WIPE ALL DATA</button>
-        <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ ACTIVE_ASSETS ]</span>
+        <div style="display:flex; justify-content: space-between;">
+            <span style="font-size: 10px; color: var(--neon-blue); font-weight: bold;">[ ACTIVE_ASSETS ]</span>
+            <span id="sos-count" style="font-size: 10px; color: var(--danger); font-weight: bold;"></span>
+        </div>
         <div id="unit-list" style="margin-top: 10px;"></div>
     </div>
 
@@ -108,9 +123,9 @@
         const data = snap.val() || {};
         const list = document.getElementById("unit-list");
         list.innerHTML = "";
-        let sosDetected = false;
+        let sosActiveCount = 0;
 
-        // Cleanup markers if data is gone
+        // Cleanup markers
         Object.keys(markers).forEach(id => {
             if(!data[id]) {
                 map.removeLayer(markers[id]);
@@ -122,22 +137,21 @@
             const unit = data[id];
             const diff = Date.now() - unit.ts;
             
-            // LOGIKA SYNC DENGAN APK
-            const isSOS = unit.status === "SOS_ACTIVATED";
-            // Lag jika > 25 detik atau status khusus dari HP
-            const isLag = diff >= 25000 || unit.status === "SIGNAL_WEAK" || unit.status === "SIGNAL_LOST" || unit.status === "GPS_SEARCHING";
+            // LOGIKA SYNC DENGAN APK (Mendeteksi status dari MainActivity.kt)
+            const isSOS = unit.sos === true || unit.status === "SOS_ACTIVE" || unit.status === "SOS_ACTIVATED";
+            const isLag = diff >= 25000;
             
-            if(isSOS) sosDetected = true;
+            if(isSOS) sosActiveCount++;
 
-            let statusColor = "#00ff00"; // Online (Green)
+            let statusColor = "#00ff00"; 
             let statusText = unit.status || "ACTIVE";
 
             if (isSOS) {
                 statusColor = "#ff1144"; 
-                statusText = "MAYDAY";
+                statusText = "!!! EMERGENCY SOS !!!";
             } else if (isLag) {
                 statusColor = "#ffff00"; 
-                statusText = "LAG / WEAK";
+                statusText = "SIGNAL_LAG";
             }
 
             // MARKER UPDATES
@@ -156,24 +170,20 @@
                     markers[id].setLatLng([unit.latitude, unit.longitude]);
                     markers[id].setIcon(customIcon);
                 }
-
-                if(selectedId === id) {
-                    document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
-                }
             }
 
-            // LIST CARD (LEFT PANEL)
+            // LIST CARD DENGAN EFEK BERDENYUT JIKA SOS
             const card = document.createElement("div");
-            card.className = `unit-card ${selectedId === id ? 'card-active' : ''}`;
-            if(isSOS) card.style.borderColor = 'red';
+            card.className = `unit-card ${selectedId === id ? 'card-active' : ''} ${isSOS ? 'card-sos' : ''}`;
+            
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-weight:bold; font-size:11px; color:#fff;">${id}</span>
+                    <span style="font-weight:bold; font-size:11px;">${id}</span>
                     <button class="btn-logout" onclick="event.stopPropagation(); remoteKill('${id}')">WIPE</button>
                 </div>
                 <div class="stat-row">
                     <span>STATUS</span>
-                    <span>
+                    <span style="font-weight:bold;">
                         <span class="status-indicator" style="background:${statusColor}"></span>
                         <span style="color:${statusColor}">${statusText}</span>
                     </span>
@@ -185,19 +195,22 @@
             list.appendChild(card);
         });
 
-        if(sosDetected) document.getElementById("sos-alarm").play();
+        // Alarm dan Counter SOS
+        if(sosActiveCount > 0) {
+            document.getElementById("sos-alarm").play();
+            document.getElementById("sos-count").innerText = `[ ${sosActiveCount} SOS_ACTIVE ]`;
+        } else {
+            document.getElementById("sos-count").innerText = "";
+        }
     });
 
+    // Fitur lainnya tetap sama...
     window.killAllUnits = function() {
-        if(confirm("TERMINATE & WIPE ALL DATA? SELURUH UNIT AKAN DI-LOGOUT PAKSA.")) {
-            remove(ref(db, "live")).then(() => alert("DATABASE_CLEARED_SUCCESSFULLY"));
-        }
+        if(confirm("TERMINATE & WIPE ALL DATA?")) remove(ref(db, "live"));
     };
 
     window.remoteKill = function(id) {
-        if(confirm(`WIPE DATA UNIT: ${id}? UNIT AKAN OTOMATIS LOGOUT.`)) {
-            remove(ref(db, `live/${id}`)).then(() => alert(`UNIT_${id}_WIPED`));
-        }
+        if(confirm(`WIPE DATA UNIT: ${id}?`)) remove(ref(db, `live/${id}`));
     };
 
     function selectUnit(id, unit) {
@@ -205,6 +218,7 @@
         map.flyTo([unit.latitude, unit.longitude], 18);
         document.getElementById("comm-panel").style.display = "block";
         document.getElementById("v-feed").style.display = "block";
+        document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
         document.getElementById("detail-box").innerHTML = `
             <div style="color:var(--neon-blue); font-weight:bold; border-bottom:1px solid #333; margin-bottom:8px; padding-bottom:4px;">${id}</div>
             COORD: ${unit.latitude.toFixed(6)}, ${unit.longitude.toFixed(6)}<br>
@@ -216,11 +230,8 @@
     document.getElementById("btnSend").onclick = () => {
         const txt = document.getElementById("msgText").value;
         if(!selectedId || !txt) return;
-        set(ref(db, `live/${selectedId}/command_msg`), { text: txt, ts: Date.now() })
-        .then(() => { 
-            alert("COMMAND_UPLINK_SUCCESS"); 
-            document.getElementById("msgText").value = ""; 
-        });
+        set(ref(db, `live/${selectedId}/command_msg`), { text: txt, ts: Date.now() });
+        document.getElementById("msgText").value = "";
     };
 </script>
 </body>
