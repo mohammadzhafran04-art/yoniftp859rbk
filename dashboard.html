@@ -17,13 +17,22 @@
             --glass-border: rgba(0, 255, 0, 0.2);
         }
 
-        /* Global Reset */
         body, html { 
             margin: 0; padding: 0; 
             font-family: 'Orbitron', sans-serif; 
             background: #000; color: var(--neon-green); 
             overflow: hidden; height: 100vh;
         }
+
+        /* PERGERAKAN MULUS MARKER */
+        .leaflet-marker-icon { 
+            transition: transform 1.5s linear !important; 
+            cursor: pointer !important; 
+            filter: drop-shadow(0 0 5px rgba(0,255,0,0.5));
+        }
+
+        /* HAPUS SEMUA BAYANGAN DEFAULT LEAFLET */
+        .leaflet-marker-shadow { display: none !important; }
 
         /* Scanline Effect */
         body::before {
@@ -32,7 +41,6 @@
             z-index: 9999; background-size: 100% 2px, 3px 100%; pointer-events: none;
         }
 
-        /* Emergency Red Vignette Pulse */
         @keyframes global-emergency {
             0% { box-shadow: inset 0 0 50px rgba(255, 0, 0, 0); }
             50% { box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.3); }
@@ -40,12 +48,10 @@
         }
         .emergency-mode { animation: global-emergency 1s infinite !important; }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #000; }
         ::-webkit-scrollbar-thumb { background: var(--neon-green); border-radius: 10px; box-shadow: 0 0 10px var(--neon-green); }
 
-        /* Header */
         .header { 
             background: rgba(0,0,0,0.95); height: 60px; padding: 0 25px; 
             display: flex; justify-content: space-between; align-items: center; 
@@ -54,7 +60,6 @@
         }
         .header-title { font-weight: 900; letter-spacing: 4px; text-shadow: 0 0 10px var(--neon-green); }
 
-        /* Layout */
         .main-container { 
             display: grid; grid-template-columns: 360px 1fr 360px; 
             height: calc(100vh - 62px); background: #000;
@@ -66,14 +71,12 @@
             backdrop-filter: blur(10px); display: flex; flex-direction: column;
         }
 
-        /* Map */
         #map { height: 100%; width: 100%; background: #050505 !important; }
 
-        /* Unit Cards */
         .unit-card { 
             padding: 15px; border: 1px solid rgba(0,255,0,0.1); 
             margin-bottom: 12px; background: rgba(0,30,0,0.3); 
-            border-radius: 8px; cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
             position: relative; overflow: hidden;
             border-left: 4px solid transparent;
         }
@@ -87,7 +90,6 @@
             box-shadow: 0 0 15px rgba(0,242,255,0.2);
         }
 
-        /* SOS Pulse Animation */
         @keyframes sos-card-pulse {
             0% { border-color: var(--danger); background: rgba(255,0,0,0.1); }
             50% { border-color: #fff; background: rgba(255,0,0,0.5); box-shadow: 0 0 20px var(--danger); }
@@ -95,7 +97,6 @@
         }
         .card-sos { animation: sos-card-pulse 0.5s infinite !important; border-left-color: #fff !important; }
 
-        /* Typography & Stats */
         .stat-row { 
             display: flex; justify-content: space-between; 
             font-size: 11px; font-family: 'JetBrains Mono'; 
@@ -103,7 +104,6 @@
         }
         .stat-val { font-weight: 700; color: #fff; }
 
-        /* Buttons */
         .btn-kill-all { 
             width: 100%; background: transparent; color: var(--danger); 
             border: 1px solid var(--danger); padding: 12px; font-family: 'Orbitron'; 
@@ -117,16 +117,14 @@
             color: var(--danger); font-size: 9px; padding: 4px 8px; 
             cursor: pointer; border-radius: 3px; font-family: 'Orbitron';
         }
-        .btn-logout:hover { background: var(--danger); color: #000; }
 
-        /* Marker UI */
         .unit-label {
             background: rgba(0,0,0,0.9); color: #fff; border: 1px solid var(--neon-green);
             padding: 3px 10px; font-size: 10px; border-radius: 20px;
-            font-family: 'JetBrains Mono'; box-shadow: 0 0 10px rgba(0,255,0,0.5);
+            font-family: 'JetBrains Mono'; white-space: nowrap;
+            position: absolute; top: -35px; left: 50%; transform: translateX(-50%);
         }
 
-        /* Details & Uplink */
         .uplink-box {
             background: rgba(0,0,0,0.5); border: 1px solid rgba(0,242,255,0.3);
             border-radius: 8px; padding: 15px; margin-top: 10px;
@@ -149,27 +147,29 @@
             align-items: center; justify-content: center; 
         }
 
-        /* Map Marker Dot */
         @keyframes dot-pulse {
             0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(3); opacity: 0; }
+            100% { transform: scale(2.5); opacity: 0; }
         }
         .unit-dot { 
-            width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff;
-            position: relative;
+            width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff;
+            position: relative; box-shadow: 0 0 10px rgba(255,255,255,0.5);
         }
         .unit-dot::after {
             content: ""; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
-            border-radius: 50%; border: 2px solid inherit; animation: dot-pulse 1.5s infinite;
+            border-radius: 50%; border: 2px solid inherit; animation: dot-pulse 2s infinite;
         }
+        .sos-active-dot { background: var(--danger) !important; animation: sos-blink 0.4s infinite !important; }
+        @keyframes sos-blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
     </style>
 </head>
 <body id="main-body">
 
 <audio id="sos-alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto" loop></audio>
+
 <div id="auth-loader">
     <div style="width: 50px; height: 50px; border: 5px solid var(--neon-green); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-    <h2 style="color:var(--neon-green); margin-top: 20px; letter-spacing: 5px;">INITIALIZING_SYSTEM</h2>
+    <h2 style="color:var(--neon-green); margin-top: 20px; letter-spacing: 5px;">ESTABLISHING_GRID_LINK</h2>
 </div>
 
 <style> @keyframes spin { to { transform: rotate(360deg); } } </style>
@@ -178,43 +178,40 @@
     <div class="header-title">🛰 TAC-COMMAND <span style="color: var(--neon-blue);">v12.5</span></div>
     <div id="clock" style="font-family: 'JetBrains Mono'; font-size: 24px; color: #fff; letter-spacing: 2px;">00:00:00</div>
     <div style="font-size: 11px; text-align: right;">
-        ENC-STATUS: <span style="color:var(--neon-blue)">SECURE_LINK</span><br>
+        GRID_STATUS: <span style="color:var(--neon-blue)">SYNCED</span><br>
         <span id="sos-global-label" style="color:var(--danger); font-weight:bold;"></span>
     </div>
 </div>
 
 <div class="main-container">
-    <!-- Left Panel -->
     <div class="panel">
-        <button class="btn-kill-all" onclick="killAllUnits()">Terminate & Wipe All Nodes</button>
+        <button class="btn-kill-all" onclick="killAllUnits()">Terminate All Assets</button>
         <div style="border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px;">
-            <span style="font-size: 12px; color: var(--neon-blue); font-weight: bold; letter-spacing: 2px;">[ ACTIVE_ASSETS ]</span>
+            <span style="font-size: 12px; color: var(--neon-blue); font-weight: bold; letter-spacing: 2px;">[ ACTIVE_NODES ]</span>
         </div>
         <div id="unit-list"></div>
     </div>
 
-    <!-- Map -->
     <div id="map"></div>
 
-    <!-- Right Panel -->
     <div class="panel">
         <div style="border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; margin-bottom: 15px;">
-            <span style="font-size: 12px; color: var(--neon-blue); font-weight: bold; letter-spacing: 2px;">[ DATA_UPLINK ]</span>
+            <span style="font-size: 12px; color: var(--neon-blue); font-weight: bold; letter-spacing: 2px;">[ ASSET_INTEL ]</span>
         </div>
         <div id="detail-box" class="uplink-box" style="font-size:12px; color: #fff; font-family: 'JetBrains Mono';">
-            <span style="color: rgba(0,255,0,0.5)">AWAITING_SELECTION...</span>
+            <span style="color: rgba(0,255,0,0.5)">AWAITING_NODE_SELECTION...</span>
         </div>
         
         <div id="comm-panel" style="display:none; margin-top:20px;">
-            <span style="font-size: 11px; color: var(--neon-blue);">COMMAND_INTERFACE:</span>
-            <input type="text" id="msgText" class="cmd-input" placeholder="ENTER INSTRUCTION...">
-            <button class="btn-send" id="btnSend">SEND MSG</button>
+            <span style="font-size: 11px; color: var(--neon-blue);">MSG_UPLINK:</span>
+            <input type="text" id="msgText" class="cmd-input" placeholder="ENTER DIRECTIVE...">
+            <button class="btn-send" id="btnSend">EXECUTE COMMAND</button>
         </div>
 
         <div style="margin-top:auto; padding-top: 20px;">
-            <span style="font-size: 11px; color: var(--neon-blue); font-weight: bold;">[ SAT_VISUAL_FEED ]</span>
+            <span style="font-size: 11px; color: var(--neon-blue); font-weight: bold;">[ SAT_TARGET_VIEW ]</span>
             <div id="v-feed" style="height:200px; border:1px solid #333; margin-top:10px; border-radius: 8px; overflow: hidden; display:none;">
-                <iframe id="sat-view" style="width:100%; height:100%; border:none; filter: grayscale(0.5) contrast(1.2) brightness(0.8);"></iframe>
+                <iframe id="sat-view" style="width:100%; height:100%; border:none; filter: grayscale(0.2) contrast(1.1) brightness(0.9);"></iframe>
             </div>
         </div>
     </div>
@@ -224,7 +221,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Firebase Config tetap sama
     const firebaseConfig = {
         apiKey: "AIzaSyAMzKg8T_1hKAukXu9GfEg0S22U9pY0ZDs",
         authDomain: "database-baru-rbk.firebaseapp.com",
@@ -237,10 +233,8 @@
     const db = getDatabase(app);
     let map, markers = {}, selectedId = null;
 
-    // Clock
     setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('id-ID', { hour12: false }); }, 1000);
     
-    // Map Init
     map = L.map('map', { center: [-0.73, 135.74], zoom: 14, zoomControl: false });
     L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
     
@@ -253,7 +247,6 @@
         list.innerHTML = "";
         let sosDetectedCount = 0;
 
-        // Cleanup markers
         Object.keys(markers).forEach(id => {
             if(!data[id]) { map.removeLayer(markers[id]); delete markers[id]; }
         });
@@ -261,8 +254,6 @@
         Object.keys(data).forEach(id => {
             const unit = data[id];
             const diff = Date.now() - unit.ts;
-            
-            // SOS Logic sync dengan APK
             const isSOS = unit.sos === true || unit.status === "SOS_ACTIVE" || unit.status === "SOS_ACTIVATED";
             const isLag = diff >= 25000;
             
@@ -272,47 +263,54 @@
             let statusText = unit.status || "ACTIVE";
 
             if (isSOS) { statusColor = "#ff1144"; statusText = "EMERGENCY"; }
-            else if (isLag) { statusColor = "#ffff00"; statusText = "SIGNAL_LAG"; }
+            else if (isLag) { statusColor = "#ffff00"; statusText = "LOST_SYNC"; }
 
-            // Update Map Marker
             if (unit.latitude) {
                 const iconHtml = `
                     <div style="position:relative;">
                         <div class="unit-label" style="border-color:${statusColor}">${id}</div>
-                        <div class="unit-dot ${isSOS ? 'sos-active' : ''}" style="background:${statusColor}; border-color:#fff; box-shadow: 0 0 15px ${statusColor}"></div>
+                        <div class="unit-dot ${isSOS ? 'sos-active-dot' : ''}" style="background:${statusColor}; border-color:#fff;"></div>
                     </div>`;
-                const customIcon = L.divIcon({ className: '', html: iconHtml, iconSize: [14, 14], iconAnchor: [7, 7] });
+                
+                // DivIcon tanpa class bawaan agar tidak ada bayangan
+                const customIcon = L.divIcon({ 
+                    className: 'custom-icon', 
+                    html: iconHtml, 
+                    iconSize: [14, 14], 
+                    iconAnchor: [7, 7] 
+                });
 
                 if(!markers[id]) {
-                    markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon }).addTo(map);
+                    markers[id] = L.marker([unit.latitude, unit.longitude], { 
+                        icon: customIcon,
+                        interactive: true 
+                    }).addTo(map);
                     markers[id].on('click', () => selectUnit(id, unit));
                 } else {
+                    // Update posisi (akan smooth karena transisi CSS)
                     markers[id].setLatLng([unit.latitude, unit.longitude]);
                     markers[id].setIcon(customIcon);
                 }
             }
 
-            // Create List Card
             const card = document.createElement("div");
             card.className = `unit-card ${selectedId === id ? 'card-active' : ''} ${isSOS ? 'card-sos' : ''}`;
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="font-weight:900; font-size:12px; color:${isSOS ? '#fff' : 'var(--neon-blue)'};">${id}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-weight:900; font-size:12px; color:var(--neon-blue);">${id}</span>
                     <button class="btn-logout" onclick="event.stopPropagation(); remoteKill('${id}')">WIPE</button>
                 </div>
                 <div class="stat-row"><span>STATUS</span><span style="color:${statusColor}">${statusText}</span></div>
-                <div class="stat-row"><span>VELOCITY</span><span class="stat-val">${unit.speed || 0} KM/H</span></div>
                 <div class="stat-row"><span>ENERGY</span><span class="stat-val">${unit.battery}%</span></div>
             `;
             card.onclick = () => selectUnit(id, unit);
             list.appendChild(card);
         });
 
-        // Global Emergency UI Feedback
         if(sosDetectedCount > 0) {
             body.classList.add("emergency-mode");
             document.getElementById("sos-alarm").play();
-            document.getElementById("sos-global-label").innerText = `⚠️ ${sosDetectedCount} EMERGENCY_DETECTED`;
+            document.getElementById("sos-global-label").innerText = `⚠️ ${sosDetectedCount} SOS_ALERT`;
         } else {
             body.classList.remove("emergency-mode");
             document.getElementById("sos-alarm").pause();
@@ -321,11 +319,11 @@
     });
 
     window.killAllUnits = function() {
-        if(confirm("TERMINATE ALL NODES? Seluruh unit akan dihapus dari grid.")) remove(ref(db, "live"));
+        if(confirm("TERMINATE GRID?")) remove(ref(db, "live"));
     };
 
     window.remoteKill = function(id) {
-        if(confirm(`WIPE UNIT: ${id}?`)) remove(ref(db, `live/${id}`));
+        if(confirm(`WIPE NODE: ${id}?`)) remove(ref(db, `live/${id}`));
     };
 
     function selectUnit(id, unit) {
@@ -336,10 +334,10 @@
         document.getElementById("sat-view").src = `https://maps.google.com/maps?q=${unit.latitude},${unit.longitude}&t=k&z=19&output=embed`;
         document.getElementById("detail-box").innerHTML = `
             <div style="color:var(--neon-blue); font-weight:900; border-bottom:1px solid #333; margin-bottom:10px; padding-bottom:5px; font-size:14px;">${id}</div>
-            <div class="stat-row"><span>LATITUDE</span><span>${unit.latitude.toFixed(6)}</span></div>
-            <div class="stat-row"><span>LONGITUDE</span><span>${unit.longitude.toFixed(6)}</span></div>
-            <div class="stat-row"><span>ACCURACY</span><span>±${unit.accuracy}m</span></div>
-            <div class="stat-row"><span>LAST_SYNC</span><span>${new Date(unit.ts).toLocaleTimeString()}</span></div>
+            <div class="stat-row"><span>LAT</span><span>${unit.latitude.toFixed(6)}</span></div>
+            <div class="stat-row"><span>LON</span><span>${unit.longitude.toFixed(6)}</span></div>
+            <div class="stat-row"><span>SPD</span><span>${unit.speed || 0} KM/H</span></div>
+            <div class="stat-row"><span>SYNC</span><span>${new Date(unit.ts).toLocaleTimeString()}</span></div>
         `;
     }
 
@@ -347,7 +345,6 @@
         const txt = document.getElementById("msgText").value;
         if(!selectedId || !txt) return;
         set(ref(db, `live/${selectedId}/command_msg`), { text: txt.toUpperCase(), ts: Date.now() });
-        alert("COMMAND_SENT_TO_" + selectedId);
         document.getElementById("msgText").value = "";
     };
 </script>
