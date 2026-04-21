@@ -24,14 +24,37 @@
             overflow: hidden; height: 100vh;
         }
 
+        /* LOGIN SCREEN SYSTEM */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #001a00 0%, #000 100%);
+            z-index: 999999; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(20px);
+        }
+        .login-box {
+            width: 380px; padding: 40px; background: rgba(0,10,0,0.9);
+            border: 2px solid var(--neon-green); border-radius: 8px;
+            text-align: center; box-shadow: 0 0 50px rgba(0,255,0,0.2);
+        }
+        .login-input {
+            width: 100%; background: #000; border: 1px solid var(--neon-green);
+            color: var(--neon-green); padding: 15px; margin: 25px 0;
+            font-family: 'JetBrains Mono'; text-align: center; font-size: 16px;
+            letter-spacing: 5px; outline: none; box-sizing: border-box;
+        }
+        .btn-access {
+            width: 100%; background: var(--neon-green); color: #000;
+            border: none; padding: 15px; font-family: 'Orbitron';
+            font-weight: 900; cursor: pointer; transition: 0.3s;
+        }
+        .btn-access:hover { box-shadow: 0 0 20px var(--neon-green); transform: scale(1.02); }
+
         /* PERGERAKAN MULUS MARKER */
         .leaflet-marker-icon { 
             transition: transform 1.5s linear !important; 
             cursor: pointer !important; 
             filter: drop-shadow(0 0 5px rgba(0,255,0,0.5));
         }
-
-        /* HAPUS SEMUA BAYANGAN DEFAULT LEAFLET */
         .leaflet-marker-shadow { display: none !important; }
 
         /* Scanline Effect */
@@ -165,9 +188,19 @@
 </head>
 <body id="main-body">
 
+<!-- LOGIN SYSTEM OVERLAY -->
+<div id="login-overlay">
+    <div class="login-box">
+        <h2 style="color:var(--neon-green); letter-spacing: 2px; margin-top:0;">HQ SECURITY LOCK</h2>
+        <p style="font-size:10px; color:rgba(0,255,0,0.5);">ENTER COMMAND KEY TO ACCESS GRID</p>
+        <input type="password" id="admin-pass" class="login-input" placeholder="********">
+        <button class="btn-access" onclick="checkAccess()">ACCESS SYSTEM</button>
+    </div>
+</div>
+
 <audio id="sos-alarm" src="https://www.soundjay.com/buttons/beep-01a.mp3" preload="auto" loop></audio>
 
-<div id="auth-loader">
+<div id="auth-loader" style="display:none;">
     <div style="width: 50px; height: 50px; border: 5px solid var(--neon-green); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
     <h2 style="color:var(--neon-green); margin-top: 20px; letter-spacing: 5px;">ESTABLISHING_GRID_LINK</h2>
 </div>
@@ -233,12 +266,40 @@
     const db = getDatabase(app);
     let map, markers = {}, selectedId = null;
 
+    // SECURITY SYSTEM LOGIC
+    const PASS_KEY = "859-COMMAND"; 
+    
+    window.checkAccess = function() {
+        const input = document.getElementById("admin-pass").value;
+        if(input === PASS_KEY) {
+            document.getElementById("login-overlay").style.display = "none";
+            document.getElementById("auth-loader").style.display = "flex";
+            setTimeout(() => {
+                document.getElementById("auth-loader").style.display = "none";
+            }, 1500);
+        } else {
+            alert("ACCESS DENIED: INVALID COMMAND KEY");
+            document.getElementById("admin-pass").value = "";
+        }
+    };
+
+    // AUTO LOCK ON MINIMIZE / HIDDEN
+    document.addEventListener("visibilitychange", function() {
+        if (document.hidden) {
+            lockSystem();
+        }
+    });
+
+    function lockSystem() {
+        document.getElementById("admin-pass").value = "";
+        document.getElementById("login-overlay").style.display = "flex";
+    }
+
+    // MAIN SYSTEM
     setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('id-ID', { hour12: false }); }, 1000);
     
     map = L.map('map', { center: [-0.73, 135.74], zoom: 14, zoomControl: false });
     L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(map);
-    
-    document.getElementById("auth-loader").style.display = "none";
 
     onValue(ref(db, "live"), snap => {
         const data = snap.val() || {};
@@ -272,22 +333,12 @@
                         <div class="unit-dot ${isSOS ? 'sos-active-dot' : ''}" style="background:${statusColor}; border-color:#fff;"></div>
                     </div>`;
                 
-                // DivIcon tanpa class bawaan agar tidak ada bayangan
-                const customIcon = L.divIcon({ 
-                    className: 'custom-icon', 
-                    html: iconHtml, 
-                    iconSize: [14, 14], 
-                    iconAnchor: [7, 7] 
-                });
+                const customIcon = L.divIcon({ className: 'custom-icon', html: iconHtml, iconSize: [14, 14], iconAnchor: [7, 7] });
 
                 if(!markers[id]) {
-                    markers[id] = L.marker([unit.latitude, unit.longitude], { 
-                        icon: customIcon,
-                        interactive: true 
-                    }).addTo(map);
+                    markers[id] = L.marker([unit.latitude, unit.longitude], { icon: customIcon, interactive: true }).addTo(map);
                     markers[id].on('click', () => selectUnit(id, unit));
                 } else {
-                    // Update posisi (akan smooth karena transisi CSS)
                     markers[id].setLatLng([unit.latitude, unit.longitude]);
                     markers[id].setIcon(customIcon);
                 }
